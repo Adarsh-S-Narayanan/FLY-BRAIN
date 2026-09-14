@@ -283,8 +283,12 @@ class BrainRuntime:
                 self.graph.col_indices,
                 self.graph.weights,
                 self.state.membrane_potentials,
-                self.state.spikes
+                self.state.spikes,
+                self.state.refractory_steps
             )
+
+    def restore_snapshot(self, filepath: str):
+        return self.load_snapshot(filepath)
 
     def cleanup(self):
         if self.gpu_engine:

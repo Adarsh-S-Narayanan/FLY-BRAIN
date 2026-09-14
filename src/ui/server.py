@@ -10,6 +10,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Quer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from pydantic import BaseModel
+from dataclasses import asdict
 from typing import Dict, Any, Optional, List
 
 from src.connectome.types import GraphMode, ProvenanceStatus
@@ -40,7 +41,6 @@ async def startup_event():
 
 @app.on_event("shutdown")
 def shutdown_event():
-    global SIMULATION_ENGINE
     if SIMULATION_ENGINE:
         SIMULATION_ENGINE.close()
 

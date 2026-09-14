@@ -336,7 +336,8 @@ class VulkanComputeEngine:
         col_indices: np.ndarray,
         weights: np.ndarray,
         initial_potentials: Optional[np.ndarray] = None,
-        initial_spikes: Optional[np.ndarray] = None
+        initial_spikes: Optional[np.ndarray] = None,
+        initial_refractory: Optional[np.ndarray] = None
     ):
         """
         Allocates persistent GPU device buffers and writes persistent descriptor sets.
@@ -357,11 +358,13 @@ class VulkanComputeEngine:
             initial_potentials = np.zeros(N, dtype=np.float32)
         if initial_spikes is None:
             initial_spikes = np.zeros(N, dtype=np.float32)
+        if initial_refractory is None:
+            initial_refractory = np.zeros(N, dtype=np.int32)
             
         initial_potentials = np.ascontiguousarray(initial_potentials, dtype=np.float32)
         initial_spikes = np.ascontiguousarray(initial_spikes, dtype=np.float32)
         initial_ext = np.zeros(N, dtype=np.float32)
-        initial_ref = np.zeros(N, dtype=np.int32)
+        initial_ref = np.ascontiguousarray(initial_refractory, dtype=np.int32)
         
         # 1. Allocate persistent buffers
         def alloc_and_upload(name: str, arr: np.ndarray):

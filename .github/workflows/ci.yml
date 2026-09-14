@@ -44,7 +44,7 @@ jobs:
 
       - name: Install Project Dependencies
         run: |
-          uv pip install --system numpy scipy pillow sounddevice soundfile vulkan fastapi uvicorn websockets diffusers transformers accelerate torch torchvision
+          uv pip install --system -r requirements.txt
 
       - name: Compile SPIR-V Compute Shaders
         run: |
@@ -70,6 +70,14 @@ jobs:
       - name: Run Connectome Evolution Benchmark
         run: |
           python scripts/test_evolution.py
+
+      - name: Verify Documentation and Code Consistency
+        run: |
+          python scripts/verify_docs_consistency.py
+
+      - name: Evaluate Release Acceptance Matrix
+        run: |
+          python scripts/run_acceptance_matrix.py
 
       - name: Upload Test & Diagnostic Artifacts
         uses: actions/upload-artifact@v4

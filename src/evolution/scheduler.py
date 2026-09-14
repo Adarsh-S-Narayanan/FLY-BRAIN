@@ -37,17 +37,18 @@ class EvolutionScheduler:
         runtime = BrainRuntime(graph, use_gpu=False, enable_plasticity=False, seed=seed)
         scores = []
 
-        # Trial 1: Sensory stimulation
-        sensory = {"visual": np.full(min(64, graph.num_neurons), 0.5, dtype=np.float32)}
-        step1 = runtime.step(sensory_inputs=sensory)
-        mean_act = step1["mean_activation"]
-        spikes = step1["spikes"]
-        
-        # Trial 2: Motor tool responsiveness
+        # Run multi-step sensory stimulation and reward trial
+        for _ in range(3):
+            sensory = {"visual": np.full(min(64, graph.num_neurons), 1.5, dtype=np.float32)}
+            runtime.step(sensory_inputs=sensory, reward=0.5)
+            
+        mean_act = float(np.mean(runtime.state.activations))
+        spikes = runtime.state.total_spikes
         speak_score = float(runtime.state.tool_associations.get("speak", 0.0))
         
-        # Fitness combines responsiveness, selectivity, and energy-efficient firing
-        fitness = (mean_act * 3.0) + (speak_score * 2.0) - (0.0005 * spikes)
+        # Fitness combines responsiveness, selectivity, and synaptic connectivity
+        fitness = (mean_act * 5.0) + (speak_score * 2.0) + (0.005 * min(spikes, 100)) + (0.0001 * graph.num_synapses)
+        runtime.cleanup()
         return float(round(fitness, 4))
 
     def run_generation(

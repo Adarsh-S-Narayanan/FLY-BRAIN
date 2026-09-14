@@ -1,115 +1,333 @@
 {
-  "current_generation": 1,
-  "current_brain_id": "brain_gen1_c0_a7d956",
-  "current_neurons": 512,
-  "current_synapses": 8470,
+  "current_generation": 3,
+  "current_brain_id": "brain_gen3_c2_4ace84",
+  "current_neurons": 268,
+  "current_synapses": 1548,
   "history": [
     {
       "generation": 1,
-      "parent_id": "brain_gen1_c0_a7d956",
-      "baseline_score": 1.2962,
-      "best_score": 1.3006,
+      "parent_id": "brain_gen1_c2_d7de85",
+      "baseline_score": 0.5271,
+      "best_score": 0.6411,
       "improved": true,
       "candidates": [
         {
-          "candidate_id": "brain_gen1_c0_a7d956",
-          "parent_id": "brain_gen0_fca4b1a3",
+          "candidate_id": "brain_gen1_c0_625469",
+          "parent_id": "brain_gen0_f4883a3a",
           "generation": 1,
           "seed": 110,
-          "num_neurons": 512,
-          "num_synapses": 8470,
+          "num_neurons": 256,
+          "num_synapses": 1452,
           "mutations": [
             {
               "type": "weight_perturbation",
-              "synapses_modified": 700,
+              "synapses_modified": 110,
               "rate": 0.08,
               "scale": 0.15
             }
           ],
-          "score": 1.3006,
-          "baseline_score": 1.2962,
+          "score": 0.6397,
+          "baseline_score": 0.5271,
           "accepted": true,
-          "reason": "ACCEPTED: Highest fitness in generation",
-          "sha256": "d69e64c33120ab87d526a3013014ff59ef3bed5a8746138920bb1b55c97d8923"
+          "reason": "Improved fitness over baseline",
+          "sha256": "ea1b390edde1d900fcdf5a821fd03eff8b89ff40d921fa7d4d8b73acfefc7be5"
         },
         {
-          "candidate_id": "brain_gen1_c1_331886",
-          "parent_id": "brain_gen0_fca4b1a3",
+          "candidate_id": "brain_gen1_c1_d4d04a",
+          "parent_id": "brain_gen0_f4883a3a",
           "generation": 1,
           "seed": 111,
-          "num_neurons": 512,
-          "num_synapses": 8470,
+          "num_neurons": 256,
+          "num_synapses": 1456,
           "mutations": [
             {
               "type": "synaptic_pruning",
               "pruned_synapses": 0,
               "threshold": 0.04,
-              "remaining_synapses": 8470
+              "remaining_synapses": 1452
             },
             {
               "type": "synaptic_rewiring",
-              "new_synapses_added": 0,
-              "total_synapses": 8470
+              "new_synapses_added": 4,
+              "total_synapses": 1456
             }
           ],
-          "score": 1.2956,
-          "baseline_score": 1.2962,
+          "score": 0.6263,
+          "baseline_score": 0.5271,
           "accepted": false,
           "reason": "Fitness did not exceed best candidate",
-          "sha256": "374a7b66265fc5f7956dee0eefe002577c71a300576155602f34fddde87b8bd2"
+          "sha256": "8d016596a5acf569c9b7e549d9fe9083a7809dfc188e055f761e321714cc5ca2"
         },
         {
-          "candidate_id": "brain_gen1_c2_41fa7e",
-          "parent_id": "brain_gen0_fca4b1a3",
+          "candidate_id": "brain_gen1_c2_d7de85",
+          "parent_id": "brain_gen0_f4883a3a",
           "generation": 1,
           "seed": 112,
-          "num_neurons": 516,
-          "num_synapses": 8502,
+          "num_neurons": 260,
+          "num_synapses": 1484,
           "mutations": [
             {
               "type": "population_growth",
               "neurons_added": 4,
-              "total_neurons": 516,
-              "total_synapses": 8502
+              "total_neurons": 260,
+              "total_synapses": 1484
             },
             {
               "type": "weight_perturbation",
-              "synapses_modified": 409,
+              "synapses_modified": 71,
               "rate": 0.05,
               "scale": 0.1
             }
           ],
-          "score": 1.2958,
-          "baseline_score": 1.2962,
-          "accepted": false,
-          "reason": "Fitness did not exceed best candidate",
-          "sha256": "00f27a2e9a02380a2a6ce5887a3397a21a2ac75e439d35eb19ed17e8be3f306a"
+          "score": 0.6411,
+          "baseline_score": 0.5271,
+          "accepted": true,
+          "reason": "ACCEPTED: Highest fitness in generation",
+          "sha256": "075ca454ce4d91e3ce72292611c8d2cc1ab34d4392649c26d10af4e21ccbe0c0"
         },
         {
-          "candidate_id": "brain_gen1_c3_1377cc",
-          "parent_id": "brain_gen0_fca4b1a3",
+          "candidate_id": "brain_gen1_c3_7bc84b",
+          "parent_id": "brain_gen0_f4883a3a",
           "generation": 1,
           "seed": 113,
-          "num_neurons": 512,
-          "num_synapses": 8470,
+          "num_neurons": 256,
+          "num_synapses": 1458,
           "mutations": [
             {
               "type": "synaptic_rewiring",
-              "new_synapses_added": 0,
-              "total_synapses": 8470
+              "new_synapses_added": 6,
+              "total_synapses": 1458
             },
             {
               "type": "weight_perturbation",
-              "synapses_modified": 333,
+              "synapses_modified": 66,
               "rate": 0.04,
               "scale": 0.08
             }
           ],
-          "score": 1.293,
-          "baseline_score": 1.2962,
+          "score": 0.6403,
+          "baseline_score": 0.5271,
           "accepted": false,
           "reason": "Fitness did not exceed best candidate",
-          "sha256": "fd688e33ace66262ff6f5653fe2ffcf5985524b2127deced7fdfda5f1e430508"
+          "sha256": "1d9f3335e5abd85a6e8c777770b34bb85b2c6f49f12f455ca8abc67d9b2a8ce8"
+        }
+      ]
+    },
+    {
+      "generation": 2,
+      "parent_id": "brain_gen2_c2_0eb583",
+      "baseline_score": 0.6411,
+      "best_score": 0.6425,
+      "improved": true,
+      "candidates": [
+        {
+          "candidate_id": "brain_gen2_c0_72d627",
+          "parent_id": "brain_gen1_c2_d7de85",
+          "generation": 2,
+          "seed": 170,
+          "num_neurons": 260,
+          "num_synapses": 1484,
+          "mutations": [
+            {
+              "type": "weight_perturbation",
+              "synapses_modified": 114,
+              "rate": 0.08,
+              "scale": 0.15
+            }
+          ],
+          "score": 0.6077,
+          "baseline_score": 0.6411,
+          "accepted": false,
+          "reason": "Fitness did not exceed best candidate",
+          "sha256": "1804a702951ee963d16a7e47614adbd10d9444149f496cac19d91ea7e0f8c5f3"
+        },
+        {
+          "candidate_id": "brain_gen2_c1_453887",
+          "parent_id": "brain_gen1_c2_d7de85",
+          "generation": 2,
+          "seed": 171,
+          "num_neurons": 260,
+          "num_synapses": 1474,
+          "mutations": [
+            {
+              "type": "synaptic_pruning",
+              "pruned_synapses": 11,
+              "threshold": 0.04,
+              "remaining_synapses": 1473
+            },
+            {
+              "type": "synaptic_rewiring",
+              "new_synapses_added": 1,
+              "total_synapses": 1474
+            }
+          ],
+          "score": 0.6264,
+          "baseline_score": 0.6411,
+          "accepted": false,
+          "reason": "Fitness did not exceed best candidate",
+          "sha256": "7ac7141868409caf9c3d2425a6762642c087512cacf818bbe756a2512a630a5f"
+        },
+        {
+          "candidate_id": "brain_gen2_c2_0eb583",
+          "parent_id": "brain_gen1_c2_d7de85",
+          "generation": 2,
+          "seed": 172,
+          "num_neurons": 264,
+          "num_synapses": 1516,
+          "mutations": [
+            {
+              "type": "population_growth",
+              "neurons_added": 4,
+              "total_neurons": 264,
+              "total_synapses": 1516
+            },
+            {
+              "type": "weight_perturbation",
+              "synapses_modified": 67,
+              "rate": 0.05,
+              "scale": 0.1
+            }
+          ],
+          "score": 0.6425,
+          "baseline_score": 0.6411,
+          "accepted": true,
+          "reason": "ACCEPTED: Highest fitness in generation",
+          "sha256": "ffbfc2ef606164aa52bb6648621c879251e3f7f614180365e7ee17106cf71808"
+        },
+        {
+          "candidate_id": "brain_gen2_c3_a2a237",
+          "parent_id": "brain_gen1_c2_d7de85",
+          "generation": 2,
+          "seed": 173,
+          "num_neurons": 260,
+          "num_synapses": 1489,
+          "mutations": [
+            {
+              "type": "synaptic_rewiring",
+              "new_synapses_added": 5,
+              "total_synapses": 1489
+            },
+            {
+              "type": "weight_perturbation",
+              "synapses_modified": 59,
+              "rate": 0.04,
+              "scale": 0.08
+            }
+          ],
+          "score": 0.6082,
+          "baseline_score": 0.6411,
+          "accepted": false,
+          "reason": "Fitness did not exceed best candidate",
+          "sha256": "605826472c8b51bac86b41d0a54e0f462faf6e6532586c5af1938fb28a3ab49e"
+        }
+      ]
+    },
+    {
+      "generation": 3,
+      "parent_id": "brain_gen3_c2_4ace84",
+      "baseline_score": 0.6425,
+      "best_score": 0.644,
+      "improved": true,
+      "candidates": [
+        {
+          "candidate_id": "brain_gen3_c0_7bd8b0",
+          "parent_id": "brain_gen2_c2_0eb583",
+          "generation": 3,
+          "seed": 230,
+          "num_neurons": 264,
+          "num_synapses": 1516,
+          "mutations": [
+            {
+              "type": "weight_perturbation",
+              "synapses_modified": 110,
+              "rate": 0.08,
+              "scale": 0.15
+            }
+          ],
+          "score": 0.6425,
+          "baseline_score": 0.6425,
+          "accepted": false,
+          "reason": "Fitness did not exceed best candidate",
+          "sha256": "55b947c1f60bd9a340f9d3caa6ef636607904c67a7fa901fa1f57fcb2b7861ba"
+        },
+        {
+          "candidate_id": "brain_gen3_c1_6d472e",
+          "parent_id": "brain_gen2_c2_0eb583",
+          "generation": 3,
+          "seed": 231,
+          "num_neurons": 264,
+          "num_synapses": 1498,
+          "mutations": [
+            {
+              "type": "synaptic_pruning",
+              "pruned_synapses": 18,
+              "threshold": 0.04,
+              "remaining_synapses": 1498
+            },
+            {
+              "type": "synaptic_rewiring",
+              "new_synapses_added": 0,
+              "total_synapses": 1498
+            }
+          ],
+          "score": 0.6271,
+          "baseline_score": 0.6425,
+          "accepted": false,
+          "reason": "Fitness did not exceed best candidate",
+          "sha256": "a68e262f337aacf2fbd1a24dab215fbae398271de2b30e3257c897e7e3de9f99"
+        },
+        {
+          "candidate_id": "brain_gen3_c2_4ace84",
+          "parent_id": "brain_gen2_c2_0eb583",
+          "generation": 3,
+          "seed": 232,
+          "num_neurons": 268,
+          "num_synapses": 1548,
+          "mutations": [
+            {
+              "type": "population_growth",
+              "neurons_added": 4,
+              "total_neurons": 268,
+              "total_synapses": 1548
+            },
+            {
+              "type": "weight_perturbation",
+              "synapses_modified": 78,
+              "rate": 0.05,
+              "scale": 0.1
+            }
+          ],
+          "score": 0.644,
+          "baseline_score": 0.6425,
+          "accepted": true,
+          "reason": "ACCEPTED: Highest fitness in generation",
+          "sha256": "7b2ba1abc3a9d6a2c1e252b61f872bde78a39de893bd324ad866298417291a61"
+        },
+        {
+          "candidate_id": "brain_gen3_c3_e98ac8",
+          "parent_id": "brain_gen2_c2_0eb583",
+          "generation": 3,
+          "seed": 233,
+          "num_neurons": 264,
+          "num_synapses": 1517,
+          "mutations": [
+            {
+              "type": "synaptic_rewiring",
+              "new_synapses_added": 1,
+              "total_synapses": 1517
+            },
+            {
+              "type": "weight_perturbation",
+              "synapses_modified": 61,
+              "rate": 0.04,
+              "scale": 0.08
+            }
+          ],
+          "score": 0.629,
+          "baseline_score": 0.6425,
+          "accepted": false,
+          "reason": "Fitness did not exceed best candidate",
+          "sha256": "6f84ab28271343839bd84bcb9d27110ec222ec0e045896e062ceb0b11a4ccb33"
         }
       ]
     }
