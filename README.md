@@ -28,7 +28,8 @@
 8. [Multi-Store Persistent Memory](#multi-store-persistent-memory)
 9. [Installation & Quick Start](#installation--quick-start)
 10. [Hardware Benchmark Results](#hardware-benchmark-results)
-11. [Citation & Third-Party Notices](#citation--third-party-notices)
+11. [Artificial-Life Layer — Honest Status](#artificial-life-layer--honest-status)
+12. [Citation & Third-Party Notices](#citation--third-party-notices)
 
 ---
 
@@ -236,6 +237,56 @@ Evaluated on physical hardware (AMD Ryzen 7 7735HS, AMD Radeon 680M GPU, Windows
 | 256 | 1,452 | 0.165 ms | 6,060.6 | 8.80 M/s |
 | 512 | 6,558 | 0.182 ms | 5,482.5 | 35.95 M/s |
 | 1,024 | 25,751 | 0.245 ms | 4,081.6 | 105.10 M/s |
+
+---
+
+## Artificial-Life Layer — Honest Status
+
+FlyBrain contains a real, small-scale artificial-life layer on top of the connectome core.
+Nothing below is mocked: every claimed behavior is implemented, tested in
+`tests/test_alife.py` (10/10 pass), and reproducible via `scripts/run_alife_experiment.py`.
+Details: `docs/alife_architecture.md`.
+
+```bash
+# Canonical overlapping-generation experiment (CPU, deterministic)
+.venv\Scripts\python.exe scripts/run_alife_experiment.py --population 10 --ticks 150 --seed 7
+
+# Bit-exact replay verification (must print match=True)
+.venv\Scripts\python.exe scripts/run_alife_experiment.py --verify diagnostics/alife_experiments/alife_p10_t150_s7.json
+
+# Live colony API (after `flybrain lab`)
+# GET /api/colony, /api/colony/organism/{id}, /api/colony/lineage
+```
+
+Verified canonical result (`seed 7, pop 10, 150 ticks`): 8 living, 4 births, 6 deaths,
+generations `[0, 1]` coexisting, 131 teaching sessions, replay hash match `True`.
+
+### IMPLEMENTED + VERIFIED
+
+- Deterministic seeds/IDs, 26-type event sourcing, state hashing (`src/common/`)
+- Versioned genome v1.0 with deterministic mutation/crossover + provenance (`src/genome/`)
+- Real development: neurogenesis, differentiation, migration, axon/dendrite growth,
+  synaptogenesis, pruning, apoptosis — invariants enforced (`src/development/`)
+- Closed sensorimotor loop in a deterministic grid world; metabolism accounting
+  (total energy never exceeds initial + tracked regrowth influx) (`src/world/`, `src/organism/`)
+- Overlapping generations, sexual/asexual reproduction, Pareto selection, separate
+  genetic/cultural lineages (`src/population/`, `src/culture/`)
+- Measured teacher→student learning gain with provenance chains; cumulative
+  cultural transmission demonstrated across 3 generations in tests
+- Sleep/dream as replay + consolidation of real episodes
+- Colony UI data API (`/api/colony*`) serving live simulation state
+
+### EXPERIMENTAL
+
+- Population simulation runs on **CPU** (single-brain Vulkan path is verified, but
+  batched multi-organism GPU stepping is not implemented).
+- Dream consolidation is replay-based; no synaptic downscaling model yet.
+
+### NOT IMPLEMENTED (no placeholders — explicitly unavailable)
+
+- LLM/VLM scientist/teacher loop (`UnavailableLLMTeacher` raises instead of faking).
+- 3D colony / development-timeline visualizations (data APIs exist).
+- 100+ generation campaigns with checkpoints.
 
 ---
 
