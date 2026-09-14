@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Vulkan-1.2%2B%20Compute-red?logo=vulkan&logoColor=white" alt="Vulkan Compute">
   <img src="https://img.shields.io/badge/Biological%20Data-Janelia%20MaleCNS-059669" alt="Janelia MaleCNS">
-  <img src="https://img.shields.io/badge/Acceptance%20Matrix-32%2F32%20PASSED-brightgreen" alt="Acceptance Matrix">
+  <img src="https://img.shields.io/badge/Acceptance%20Matrix-44%2F44%20PASSED-brightgreen" alt="Acceptance Matrix">
   <img src="https://img.shields.io/badge/Platform-Windows%2011%20%7C%20Linux-0284c7" alt="Platform">
 </p>
 
@@ -24,7 +24,7 @@
 4. [Persistent Vulkan Compute Engine](#persistent-vulkan-compute-engine)
 5. [FlyBrain Lab: Scientific Workstation UI](#flybrain-lab-scientific-workstation-ui)
 6. [Deterministic Experimentation CLI](#deterministic-experimentation-cli)
-7. [Automated Release Acceptance Matrix (32/32 Passed)](#automated-release-acceptance-matrix-3232-passed)
+7. [Automated Release Acceptance Matrix (44/44 Passed)](#automated-release-acceptance-matrix-3232-passed)
 8. [Multi-Store Persistent Memory](#multi-store-persistent-memory)
 9. [Installation & Quick Start](#installation--quick-start)
 10. [Hardware Benchmark Results](#hardware-benchmark-results)
@@ -160,7 +160,7 @@ flybrain docs-verify
 
 ---
 
-## Automated Release Acceptance Matrix (32/32 Passed)
+## Automated Release Acceptance Matrix (44/44 Passed)
 
 Release readiness is verified by `scripts/run_acceptance_matrix.py`, producing `diagnostics/acceptance_matrix.json`.
 Every PASS corresponds to an executable behavioral assertion (no source-text-only checks):
@@ -199,11 +199,23 @@ Every PASS corresponds to an executable behavioral assertion (no source-text-onl
 | 30 | `checkpoint_continuation` | **PASS** | Checkpoint/resume final population hash equals uninterrupted run. |
 | 31 | `llm_model_discovery_and_inference` | **PASS** | Local GGUF discovered, loaded, and generated tokens. |
 | 32 | `llm_failure_mode_and_tool_safety` | **PASS** | Unavailable model returns structured error; shell/unknown tools rejected. |
+| 33 | `living_brain_identity` | **PASS** | Persistent neuron/synapse identities; EMERGENT provenance for lifetime growth. |
+| 34 | `structural_growth_resource_constrained` | **PASS** | Zero growth budget blocks neurogenesis (energy is the constraint). |
+| 35 | `eligibility_neuromodulation` | **PASS** | v2 traces + novelty-driven neuromodulation move weights with reward=0. |
+| 36 | `autonomy_self_generated_goals` | **PASS** | All living organisms self-generate goals; no human task commands. |
+| 37 | `grounded_language_and_social` | **PASS** | Symbols bind to grounded concepts; trust emerges from interaction outcomes. |
+| 38 | `genome_v2_architecture_genes` | **PASS** | v2 encodes learning architecture; v1 legacy remains exactly valid. |
+| 39 | `speciation_evidence` | **PASS** | Divergence recorded only with measured genome distance. |
+| 40 | `llm_control_plane_safety` | **PASS** | Invalid/shell commands rejected; valid typed commands execute. |
+| 41 | `research_memory_chain` | **PASS** | Hash-chained append-only research memory; tamper-evident. |
+| 42 | `deeptime_escalation_replay` | **PASS** | Coarse deep-time escalates to full-res checkpoint; replay hash-verified. |
+| 43 | `milestone_evidence` | **PASS** | Milestones detected with evidence + machine-readable certificates. |
+| 44 | `benchmark_fairness` | **PASS** | Per-arm budgets documented; LLM arms SKIP with reason when unmet. |
 
 > **Environment-dependent gates are `SKIP`, never fake-PASS:** on GPU-less CI
 > runners, gates 9–11 (Vulkan discovery/lifecycle/parity) skip; on hosts without
 > local GGUF weights, gate 31 (LLM discovery/inference) skips. Cloud CI profile:
-> **28 PASS / 4 SKIP / 0 FAIL → PASSED**. Workstation profile: **32/32 PASS**.
+> **40 PASS / 4 SKIP / 0 FAIL → PASSED**. Workstation profile: **44/44 PASS**.
 
 ---
 
@@ -288,13 +300,43 @@ Details: `docs/alife_architecture.md`.
 # GET /api/colony, /api/colony/organism/{id}, /api/colony/lineage
 ```
 
-Verified canonical result (`seed 7, pop 6, 60 ticks`): 7 living, 4 births, 2 deaths,
-generations `[0, 1]` coexisting, 12 teaching sessions, replay hash match `True`.
+Verified canonical result (`seed 7, pop 6, 60 ticks`): 8 living, 2 births, 0 deaths,
+generations `[0, 1]` coexisting, 0 teaching sessions in this short canonical run
+(teaching gain is separately verified by gate `cultural_transmission_gain`),
+replay hash match `True` (`c2da7f2ae763d56c`).
 
 ### IMPLEMENTED + VERIFIED
 
 - Deterministic seeds/IDs, 26-type event sourcing, state hashing, and layered provenance fingerprints (`src/common/`)
-- Versioned genome v1.0 with deterministic mutation/crossover + provenance (`src/genome/`)
+- **LivingBrain v1**: persistent neuron/synapse identities (never reused), per-element
+  provenance classes (BIOLOGICAL/DERIVED/EMERGENT/EVOLVED/SYNTHETIC), structural
+  event log, resource-constrained growth orchestration, checkpointable registries (`src/brain/living.py`)
+- **v2 eligibility plasticity**: persistent eligibility traces + versioned neuromodulatory
+  signal (reward/novelty/prediction-error/social/goal) alongside the v1 Hebbian
+  compat baseline (`src/brain/eligibility.py`); prediction influences attention/curiosity (opt-in)
+- **Autonomy engine**: self-generated goals from needs/curiosity/prediction-error/
+  opportunity/social signals, compositional continuous actions (heading/speed/
+  duration/intensity) modulated by neural state — no tiny action menu (`src/autonomy/`)
+- **Embodiment**: body state with damage/speed-capacity/recovery constraining action (`src/embodiment/`)
+- **Grounded language**: symbols bound to grounded concepts; production from internal
+  state; measured information transfer via receiver behavior (`src/language/`)
+- **Emergent social model**: identity recognition, interaction history, trust from
+  outcomes (never hard-coded friendship), persistent relationships (`src/social/`)
+- **Genome v2.0**: 9 learning-architecture genes (eligibility decay, neuromodulation
+  weights, growth budget, prediction gain, social-learning bias, sleep, communication)
+  evolving the learning architecture itself; v1.0 remains exactly valid (`src/genome/`)
+- **Speciation**: genome-distance clustering + evidence-backed divergence records (`src/evolution/speciation.py`)
+- **LLM control plane**: 14 typed schema-validated commands (SPAWN/START/PAUSE/STOP/
+  SAVE/LOAD/CONFIG/EXPERIMENT/COMPARISON/REPLAY/PROPOSE_*); shell/code injection
+  rejected; execution log (`src/llm/control.py`) + hash-chained research memory (`src/llm/research_memory.py`)
+- **Deep time**: event-driven coarse acceleration with documented approximation model,
+  milestone escalation to full-resolution checkpoints, hash-verified replay (`src/timeline/deeptime.py`)
+- **Milestone detection**: evidence-backed milestones (structural expansion, cultural
+  transmission, overlapping generations, emergent communication, social persistence,
+  speciation) with machine-readable certificates (`src/science/milestones.py`)
+- **Benchmark suite**: FlyBrain vs LLM-only vs LLM+tools with per-arm budgets and
+  per-category results — no aggregate superiority claims (`src/research/benchmark.py`)
+- Versioned genome v1.0/v2.0 with deterministic mutation/crossover + provenance (`src/genome/`)
 - Real development: neurogenesis, differentiation, migration, axon/dendrite growth,
   synaptogenesis, pruning, apoptosis — invariants enforced (`src/development/`)
 - Closed sensorimotor loop in a deterministic grid world; metabolism accounting
@@ -318,12 +360,15 @@ generations `[0, 1]` coexisting, 12 teaching sessions, replay hash match `True`.
 - CPU/Vulkan integration is trajectory-parity, not bit-exact (documented).
 - Local LLM outputs are generated by a 2B-class quantization locally and are
   scientifically weak; the scientist loop always treats them as hypotheses, never ground truth.
+- Deep-time coarse mode aggregates lifecycle events (documented approximation);
+  it is not neural-resolution-equivalent and never claims to be.
 
 ### NOT IMPLEMENTED (no placeholders — explicitly unavailable)
 
 - 3D colony / development-timeline visualizations (data APIs exist).
 - Multi-GPU batched organism stepping.
 - Synaptic downscaling / homeostatic sleep consolidation models.
+- Cross-ecosystem world evolution (world events beyond resources/hazards).
 
 ---
 

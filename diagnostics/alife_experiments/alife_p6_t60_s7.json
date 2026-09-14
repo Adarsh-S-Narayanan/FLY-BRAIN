@@ -1,12 +1,12 @@
 {
   "experiment": "canonical_alife_overlap",
   "seed": 7,
-  "substrate": "real",
+  "substrate": "synthetic",
   "population_start": 6,
   "population_total": 8,
   "ticks": 60,
   "circuit_size": 32,
-  "graph_mode": "REAL",
+  "graph_mode": "SYNTHETIC_TEST",
   "births": 2,
   "deaths": 0,
   "generations_present": [
@@ -22,12 +22,12 @@
     "7ccb088ec804995e": [],
     "26aabc78b7bd7249": [],
     "fa64e8e1f984f54d": [],
-    "46e408118705bf64": [
+    "e6caab9843935096": [
       "26aabc78b7bd7249",
-      "7ccb088ec804995e"
+      "e991719b1c0ae550"
     ],
-    "3cda6493a2bbefba": [
-      "e991719b1c0ae550",
+    "e8cfbe6c3bef936d": [
+      "1608306d611d8ea9",
       "26aabc78b7bd7249"
     ]
   },
@@ -76,32 +76,32 @@
       43.0
     ],
     "mean_synapses": [
-      7.33,
-      7.33,
-      7.33,
-      6.83,
-      6.33,
-      6.33,
-      5.83,
-      5.17,
-      4.5,
-      3.83,
-      3.5,
-      9.88
+      23.0,
+      22.83,
+      22.83,
+      22.17,
+      22.0,
+      21.33,
+      20.83,
+      20.83,
+      20.33,
+      20.33,
+      20.33,
+      84.38
     ],
     "mean_energy": [
-      1.052,
-      1.0291,
-      1.0899,
-      1.0045,
-      1.204,
-      1.1135,
-      1.0085,
-      0.8177,
-      0.6669,
-      0.6739,
-      0.5063,
-      0.4825
+      1.082,
+      0.9238,
+      0.8025,
+      0.9696,
+      1.106,
+      0.9788,
+      0.8735,
+      0.9344,
+      0.8821,
+      0.8324,
+      0.7432,
+      0.6137
     ],
     "teaching_sessions": [
       0,
@@ -132,8 +132,8 @@
       2
     ]
   },
-  "population_hash": "583721155a23d2e1074dc8130b4dbe06d621c5b97377172b540e67dbe5146ad7",
-  "events_hash": "292fa45e98721b66b8a66e991e3c220cc4cf86d95e1d1b72c64850f9d3b68ce1",
+  "population_hash": "c2da7f2ae763d56c3ae5773b33b08abe551c7f712628863971c2566afd338802",
+  "events_hash": "4a504486d8f6543f136b3dd2fdd06d01c7ff4f50f4c8e8b3f1076e25a8393e6a",
   "event_count": 69,
-  "elapsed_sec": 16.29
+  "elapsed_sec": 0.46
 }

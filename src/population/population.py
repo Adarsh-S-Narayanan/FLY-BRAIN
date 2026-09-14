@@ -14,11 +14,14 @@ from src.world.environment import GridWorld, WorldConfig
 
 class Population:
     def __init__(self, size: int, seeds: SeedBundle, graph_mode: GraphMode = GraphMode.SYNTHETIC_TEST,
-                 circuit_size: int = 64, experiment_seed: int = 42):
+                 circuit_size: int = 64, experiment_seed: int = 42,
+                 autonomy_mode: bool = False, genome_version: str = "1.0"):
         self.seeds = seeds
         self.experiment_seed = int(experiment_seed)
         self.graph_mode = graph_mode
         self.circuit_size = int(circuit_size)
+        self.autonomy_mode = bool(autonomy_mode)
+        self.genome_version = genome_version
         self.tick = 0
         self.generation = 0
         self.repro_index = 0
@@ -33,13 +36,15 @@ class Population:
                                            n_hazards=max(1, min(4, size // 3)),
                                            world_seed=seeds.world_seed))
         for i in range(size):
-            genome = Genome.founder(derive_subseed(seeds.mutation_seed, f"founder:{i}"))
+            genome = Genome.founder(derive_subseed(seeds.mutation_seed, f"founder:{i}"),
+                                    legacy=(genome_version == "1.0"))
             oid = create_offspring_id(experiment_seed, 0, ["founder"], i, genome.genome_hash())
             org = Organism(genome, oid, generation=0,
                            seeds={"organism_seed": derive_subseed(seeds.organism_seed, f"org:{i}"),
                                   "development_seed": derive_subseed(seeds.development_seed, f"dev:{i}")},
                            graph_mode=graph_mode, circuit_size=circuit_size,
-                           parents=[], birth_tick=0, start_pos=(i % 16, (i * 3) % 16))
+                           parents=[], birth_tick=0, start_pos=(i % 16, (i * 3) % 16),
+                           autonomy_mode=autonomy_mode)
             self.organisms.append(org)
             self.world.place(oid, org.position)
             self.genetic_lineage[oid] = []
@@ -63,11 +68,35 @@ class Population:
                                 + abs(t.position[1] - student.position[1]) <= 3]
                     if teachers:
                         import hashlib as _h
-                        pick = teachers[int(_h.sha256(f"{student.id}:{self.tick}".encode()).hexdigest(), 16)
-                                        % len(teachers)]
+                        legacy_idx = int(_h.sha256(f"{student.id}:{self.tick}".encode()).hexdigest(), 16) \
+                            % len(teachers)
+                        # v2: social_learning_bias gene shifts teacher choice toward
+                        # trusted partners (emergent trust, STAGE H). v1 students
+                        # keep the exact legacy pairing (compat).
+                        bias = 0.0
+                        if student.social_mem is not None and student.genome.version == "2.0":
+                            bias = float(student.genome.get("social_learning_bias", 0.0))
+                        if bias > 0.05:
+                            def _score(t):
+                                jitter = int(_h.sha256(f"{t.id}:{student.id}:{self.tick}"
+                                                       .encode()).hexdigest(), 16) / float(2 ** 256)
+                                tr = student.social_mem.trust_of(t.id)
+                                return tr * bias + jitter * (1.0 - bias)
+                            pick = max(teachers, key=_score)
+                        else:
+                            pick = teachers[legacy_idx]
                         sess = teach(pick, student, "forage", self.tick, self.seeds.teacher_seed)
                         self.teaching_sessions.append(sess)
                         self.cultural_lineage.setdefault(student.id, []).append(pick.id)
+                        # social memory records the interaction outcome (both sides)
+                        if student.social_mem is not None:
+                            student.social_mem.record_interaction(
+                                pick.id, self.tick, "taught_by",
+                                min(1.0, sess.learning_gain * 2.0))
+                        if pick.social_mem is not None:
+                            pick.social_mem.record_interaction(
+                                student.id, self.tick, "taught_to",
+                                min(1.0, sess.learning_gain * 1.5))
             self.events.log("WORLD_STEP", self.tick, "", self.generation,
                             {"living": len(self.living())})
 
@@ -119,7 +148,8 @@ class Population:
                                     "development_seed": derive_subseed(self.seeds.development_seed, oid)},
                              graph_mode=self.graph_mode, circuit_size=self.circuit_size,
                              parents=parent_ids, birth_tick=self.tick,
-                             start_pos=(self.tick % 16, (self.tick * 5) % 16))
+                             start_pos=(self.tick % 16, (self.tick * 5) % 16),
+                             autonomy_mode=self.autonomy_mode)
             for pid in parent_ids:
                 p = next(o for o in self.organisms if o.id == pid)
                 p.children.append(oid)
@@ -168,6 +198,7 @@ class Population:
         return {"tick": self.tick, "generation": self.generation,
                 "repro_index": self.repro_index, "experiment_seed": self.experiment_seed,
                 "graph_mode": self.graph_mode.value, "circuit_size": self.circuit_size,
+                "autonomy_mode": self.autonomy_mode, "genome_version": self.genome_version,
                 "world": self.world.snapshot(),
                 "organisms": [o.snapshot() for o in self.organisms],
                 "genetic_lineage": self.genetic_lineage,
@@ -180,6 +211,8 @@ class Population:
         pop.experiment_seed = snap["experiment_seed"]
         pop.graph_mode = GraphMode(snap["graph_mode"])
         pop.circuit_size = snap["circuit_size"]
+        pop.autonomy_mode = bool(snap.get("autonomy_mode", False))
+        pop.genome_version = snap.get("genome_version", "1.0")
         pop.tick, pop.generation, pop.repro_index = snap["tick"], snap["generation"], snap["repro_index"]
         pop.world = GridWorld(WorldConfig())
         pop.world.restore(snap["world"])

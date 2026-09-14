@@ -5,6 +5,9 @@ from typing import Dict, Any, Optional, Tuple, List
 from src.connectome.types import ConnectomeGraph, GraphMode, ProvenanceStatus
 from src.brain.state import BrainState, HomeostaticDrives
 from src.brain.plasticity import PlasticityEngine
+from src.brain.eligibility import (
+    EligibilityState, EligibilityEngine, NeuromodulationConfig, PLASTICITY_MODES,
+)
 from src.compute.vulkan_backend import VulkanComputeEngine
 from src.compute.cpu_reference import cpu_lif_step
 
@@ -13,21 +16,44 @@ class BrainRuntime:
     Central Brain Runtime integrating biological connectome graph,
     persistent Vulkan GPU acceleration, LIF spiking neural dynamics,
     synaptic plasticity, homeostatic drives, and biological population mapping.
+
+    plasticity_mode:
+      "v1_hebbian"    legacy three-factor reward rule (compat baseline).
+      "v2_eligibility" persistent eligibility traces + versioned neuromodulatory
+                       signal (reward/novelty/prediction-error/social/goal).
     """
     def __init__(
         self,
         graph: ConnectomeGraph,
         use_gpu: bool = True,
         enable_plasticity: bool = True,
-        seed: int = 42
+        seed: int = 42,
+        plasticity_mode: str = "v1_hebbian",
+        neuromod: Optional[NeuromodulationConfig] = None,
+        trace_decay: float = 0.9,
+        prediction_influence: bool = False,
+        prediction_gain: float = 0.5,
     ):
+        if plasticity_mode not in PLASTICITY_MODES:
+            raise ValueError(f"unknown plasticity_mode {plasticity_mode!r}; "
+                             f"expected one of {PLASTICITY_MODES}")
         self.graph = graph
         self.use_gpu = use_gpu
         self.enable_plasticity = enable_plasticity
         self.seed = seed
+        self.plasticity_mode = plasticity_mode
+        self.prediction_influence = bool(prediction_influence)
+        self.prediction_gain = float(np.clip(prediction_gain, 0.0, 1.0))
         self.state = BrainState.create_initial(graph.num_neurons, seed=seed)
         self.plasticity = PlasticityEngine()
         self.plasticity_updates = 0  # cumulative synapses updated (observability)
+        self.eligibility: Optional[EligibilityState] = None
+        self.eligibility_engine: Optional[EligibilityEngine] = None
+        if plasticity_mode == "v2_eligibility":
+            self.eligibility = EligibilityState(len(graph.weights), seed=seed)
+            self.eligibility_engine = EligibilityEngine(
+                trace_decay=trace_decay,
+                neuromod=neuromod if neuromod is not None else NeuromodulationConfig())
         
         self.gpu_engine: Optional[VulkanComputeEngine] = None
         if self.use_gpu:
@@ -163,9 +189,39 @@ class BrainRuntime:
         novelty = float(np.std(self.state.activations))
         self.state.drives.step(activity_level=activity_mean, novelty=novelty)
 
+        # Prediction-influenced attention/curiosity (opt-in; off in compat mode)
+        if self.prediction_influence and len(self.state.attention) == N:
+            err = float(self.state.prediction_error)
+            gate = np.float32(np.clip(1.0 + self.prediction_gain * err, 0.5, 2.0))
+            for idx in (self.sensory_visual_indices, self.sensory_olfactory_indices,
+                        self.sensory_memory_indices):
+                if len(idx):
+                    self.state.attention[idx] = np.clip(
+                        self.state.attention[idx] * gate, 0.0, 1.0)
+                    self.state.attention[idx] /= max(
+                        1e-6, float(np.mean(self.state.attention[idx])))
+            self.state.drives.curiosity = float(np.clip(
+                self.state.drives.curiosity + 0.1 * self.prediction_gain * err, 0.0, 1.5))
+
         # Synaptic Plasticity
         synapses_updated = 0
-        if self.enable_plasticity and abs(reward) > 1e-4:
+        neuromod_signal = 0.0
+        if self.plasticity_mode == "v2_eligibility" and self.eligibility is not None:
+            # v2: traces update every step; weights move when the versioned
+            # neuromodulatory signal is nonzero (structural changes resize traces).
+            self.eligibility.sync_size(len(self.graph.weights))
+            if self.enable_plasticity:
+                res = self.eligibility_engine.step(
+                    self.graph, self.eligibility,
+                    pre_spikes=prev_spikes, post_spikes=new_spk,
+                    reward=reward, novelty=novelty,
+                    prediction_error=float(self.state.prediction_error))
+                neuromod_signal = res["signal"]
+                synapses_updated = res["synapses_updated"] if abs(res["signal"]) > 1e-6 else 0
+                if synapses_updated:
+                    # Provenance: weights changed -> refresh graph hash.
+                    self.graph.graph_hash = self.graph.compute_graph_hash()
+        elif self.enable_plasticity and abs(reward) > 1e-4:
             if self.gpu_engine is not None and self.use_gpu:
                 # P4: the persistent step's ping-pong copy already overwrote the
                 # prev_spikes buffer with S(t); restore true S(t-1) so the
@@ -180,6 +236,7 @@ class BrainRuntime:
                 self.gpu_engine.upload_buffer_data("prev_spikes", new_spk)
                 if updated_weights is not None:
                     self.graph.weights = updated_weights
+                    self.graph.graph_hash = self.graph.compute_graph_hash()
                 synapses_updated = len(self.graph.weights)
             else:
                 synapses_updated = self.plasticity.apply_hebbian_update(
@@ -221,6 +278,8 @@ class BrainRuntime:
             },
             "selected_action": selected_action,
             "synapses_updated": synapses_updated,
+            "plasticity_mode": self.plasticity_mode,
+            "neuromod_signal": round(neuromod_signal, 6),
             "backend": "vulkan_gpu" if (self.use_gpu and self.gpu_engine) else "cpu_reference"
         }
 
@@ -252,7 +311,12 @@ class BrainRuntime:
             graph_hash=self.graph.graph_hash,
             graph_mode=self.graph.mode.value,
             tool_associations=json.dumps(self.state.tool_associations),
-            active_goal=self.state.active_goal
+            active_goal=self.state.active_goal,
+            plasticity_mode=self.plasticity_mode,
+            eligibility_traces=(self.eligibility.traces if self.eligibility is not None
+                                else np.zeros(0, dtype=np.float32)),
+            eligibility_updates=(self.eligibility.updates if self.eligibility is not None
+                                 else 0),
         )
 
     def load_snapshot(self, filepath: str):
@@ -286,6 +350,18 @@ class BrainRuntime:
             self.state.tool_associations = json.loads(str(data["tool_associations"]))
         if "active_goal" in data:
             self.state.active_goal = str(data["active_goal"])
+        if "plasticity_mode" in data:
+            self.plasticity_mode = str(data["plasticity_mode"])
+        if self.plasticity_mode == "v2_eligibility":
+            if self.eligibility is None:
+                self.eligibility = EligibilityState(len(self.graph.weights), seed=self.seed)
+                self.eligibility_engine = EligibilityEngine()
+            if "eligibility_traces" in data:
+                self.eligibility.traces = np.copy(data["eligibility_traces"]).astype(np.float32)
+                self.eligibility.updates = int(data["eligibility_updates"])
+        else:
+            self.eligibility = None
+            self.eligibility_engine = None
             
         # Restore graph weights and topology
         self.graph.weights = np.copy(data["weights"])

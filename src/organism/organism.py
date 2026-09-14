@@ -37,7 +37,8 @@ class Organism:
     def __init__(self, genome: Genome, organism_id: str, generation: int = 0,
                  seeds: Optional[Dict[str, int]] = None, graph_mode: GraphMode = GraphMode.SYNTHETIC_TEST,
                  circuit_size: int = 64, parents: Optional[List[str]] = None,
-                 birth_tick: int = 0, start_pos: tuple = (0, 0)):
+                 birth_tick: int = 0, start_pos: tuple = (0, 0),
+                 autonomy_mode: bool = False):
         self.genome = genome
         self.genome.validate()
         self.id = organism_id
@@ -58,6 +59,25 @@ class Organism:
         self.cause_of_death = ""
         self.position = tuple(start_pos)
         self.heading = (1, 0)      # persistent run direction (chemotaxis)
+        # STAGE E/F: optional autonomy + embodiment (additive; legacy mode untouched)
+        self.autonomy_mode = bool(autonomy_mode)
+        self.autonomy = None
+        self.body = None
+        self.living: Optional["LivingBrain"] = None
+        self.language = None
+        self.social_mem = None
+        self.last_action_log: Dict[str, Any] = {}
+        if self.autonomy_mode:
+            from src.autonomy.engine import AutonomyEngine
+            from src.embodiment.body import BodyState
+            from src.language.grounded import GroundedLanguageSystem
+            from src.social.model import SocialMemory
+            oseed = int(self.seeds.get("organism_seed", 44))
+            self.autonomy = AutonomyEngine(seed=oseed)
+            self.body = BodyState(energy=self.energy, health=self.health,
+                                  position=tuple(start_pos))
+            self.language = GroundedLanguageSystem(seed=oseed)
+            self.social_mem = SocialMemory(self.id)
         self.last_food = 0.0       # previous food gradient (tumble trigger)
         self._last_reward = 0.0    # previous tick outcome -> neural plasticity (P12)
         # own brain copy (CPU for determinism inside populations)
@@ -66,17 +86,94 @@ class Organism:
         # deep copy so development is per-organism
         from copy import deepcopy
         self.graph = deepcopy(graph)
-        self.brain = BrainRuntime(self.graph, use_gpu=False,
-                                  enable_plasticity=True, seed=oseed)
+        if self.autonomy_mode:
+            # v2 architecture genes -> versioned learning architecture (STAGE I)
+            from src.brain.eligibility import NeuromodulationConfig
+            self.brain = BrainRuntime(
+                self.graph, use_gpu=False, enable_plasticity=True, seed=oseed,
+                plasticity_mode="v2_eligibility",
+                neuromod=NeuromodulationConfig(
+                    w_novelty=self.genome.get("neuromod_novelty_weight", 0.0),
+                    w_prediction_error=self.genome.get("neuromod_prediction_weight", 0.0)),
+                trace_decay=self.genome.get("eligibility_decay", 0.9),
+                prediction_influence=True,
+                prediction_gain=self.genome.get("prediction_gain", 0.5))
+            # STAGE G: grounded seed concepts come from actual sensory channels
+            self._ground_seed_concepts()
+        else:
+            self.brain = BrainRuntime(self.graph, use_gpu=False,
+                                      enable_plasticity=True, seed=oseed)
         self.dev = DevelopmentState.initialize(self.graph.num_neurons)
         self.dev_engine = DevelopmentEngine(genome.params,
                                             development_seed=int(self.seeds.get("development_seed", 45)))
+        if self.autonomy_mode:
+            from src.brain.living import LivingBrain
+            self.living = LivingBrain(self.graph, dev=self.dev, engine=self.dev_engine,
+                                      experiment_seed=oseed)
         self.events = EventLog()
         self.events.log("ORGANISM_BORN", self.tick, self.id, self.generation,
                         {"genome_hash": genome.genome_hash(), "parents": self.parents,
                          "graph_mode": graph_mode.value, "circuit_size": circuit_size})
 
     # ---- sensorimotor loop ----
+    def _ground_seed_concepts(self):
+        """Ground core concepts on actual sensory/internal dims (STAGE G).
+        Feature vectors are FEATURE TEMPLATES; lived experience updates salience
+        through produce/comprehend usage, never invented content."""
+        if self.language is None:
+            return
+        if self.language.vocabulary_size() > 0:
+            return
+        seeds = [
+            ("food", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "sensory"),
+            ("danger", [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "sensory"),
+            ("kin", [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], "social"),
+            ("tired", [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0], "internal"),
+        ]
+        for i, (name, vec, mod) in enumerate(seeds):
+            c = self.language.ground_concept(name, vec, mod, {"origin": "seed_template"})
+            self.language.learn_symbol(f"sym{i}", c.concept_id, teacher="self")
+
+    def _communicate(self, sense: Dict[str, Any], out: Dict[str, Any]) -> List[str]:
+        """Produce grounded symbols from internal state when tendency is high
+        and something is salient (STAGE G/H). Returns produced symbols."""
+        if self.language is None or self.autonomy is None:
+            return []
+        tendency = self.genome.get("communication_tendency", 0.0)
+        if tendency < 0.2:
+            return []
+        import numpy as _np
+        rng = _np.random.RandomState(derive_subseed(
+            int(self.seeds.get("organism_seed", 44)), f"comm:{self.tick}"))
+        if rng.rand() > tendency:
+            return []
+        salient = []
+        if float(sense.get("food_gradient", 0.0)) > 1.0:
+            salient.append(self._concept_by_name("food"))
+        if float(sense.get("hazard_gradient", 0.0)) > 0.6:
+            salient.append(self._concept_by_name("danger"))
+        if int(sense.get("nearby_organisms", 0)) > 0:
+            salient.append(self._concept_by_name("kin"))
+        if self.energy < 0.3:
+            salient.append(self._concept_by_name("tired"))
+        salient = [c for c in salient if c]
+        return self.language.produce({"salient_concepts": salient})
+
+    def _concept_by_name(self, name: str):
+        if self.language is None:
+            return None
+        for c in self.language.concepts.values():
+            if c.name == name:
+                return c.concept_id
+        return None
+
+    def receive_message(self, sender_id: str, symbols: List[str], tick: int) -> Dict[str, Any]:
+        """Grounded comprehension + social recording (STAGE H)."""
+        cids = self.language.comprehend(symbols) if self.language else []
+        if self.social_mem is not None and cids:
+            self.social_mem.record_interaction(sender_id, tick, "communicated", 0.3)
+        return {"comprehended": cids}
+
     def step(self, world: GridWorld) -> Dict[str, Any]:
         if not self.alive:
             return {"organism_id": self.id, "alive": False}
@@ -93,25 +190,58 @@ class Organism:
         dead_idx = [i for i, a in enumerate(self.dev.alive) if not a]
         if dead_idx and len(self.brain.state.spikes) >= max(dead_idx, default=-1) + 1:
             pass  # spikes arrays only cover live indices; dead edges were stripped
-        # decision -> motor: run-and-tumble chemotaxis biased by brain action
+        # decision -> motor
         act = out.get("selected_action", "explore")
         dx = dy = 0
-        explore = float(self.genome.params.get("exploration", 0.5))
-        rng = np.random.RandomState(derive_subseed(int(self.seeds.get("organism_seed", 44)),
-                                                   f"move:{self.tick}"))
-        food_now = float(sense["food_gradient"])
-        hungry = self.energy < 0.7
-        # tumble (pick new heading) when gradient worsens while hungry, or randomly when exploring
-        if (hungry and food_now < self.last_food - 1e-6) or rng.rand() < explore * 0.25:
-            self.heading = (int(rng.randint(-1, 2)), int(rng.randint(-1, 2)))
-        self.last_food = food_now
-        if act in ("act_in_environment", "explore") or hungry or rng.rand() < 0.5:
-            dx, dy = self.heading
-            if dx == 0 and dy == 0:
-                dx = int(rng.randint(-1, 2))
-            if float(sense["hazard_gradient"]) > 0.5 and rng.rand() < 0.7:
-                dx, dy = -dx, int(rng.randint(-1, 2))  # escape reflex
-            world.apply_move(self.id, dx, dy)
+        if self.autonomy_mode and self.autonomy is not None and self.body is not None:
+            import math
+            energy_before = self.energy
+            novel = self.autonomy.note_position(self.position)
+            self.autonomy.generate_goals(
+                self.tick, self.energy, self.health,
+                drives=out.get("drives", {}),
+                prediction_error=float(out.get("prediction_error", 0.0)),
+                world_sense=sense, position=self.position, skills=self.skills)
+            goal = self.autonomy.active_goal()
+            cand = self.autonomy.synthesize_action(
+                self.tick, goal, out, sense, self.energy, self.health,
+                exploration=float(self.genome.params.get("exploration", 0.5)))
+            act = cand.kind
+            if cand.kind == "move" and self.body.is_mobile():
+                step_len = max(1, int(round(cand.speed * self.body.speed_capacity())))
+                dx = int(round(math.cos(cand.heading) * step_len))
+                dy = int(round(math.sin(cand.heading) * step_len))
+                if dx == 0 and dy == 0 and cand.speed > 0.05:
+                    dx = 1 if math.cos(cand.heading) >= 0 else -1
+                world.apply_move(self.id, dx, dy)
+                self.body.heading = float(cand.heading)
+            elif cand.kind == "rest":
+                self.body.recover(0.05)
+                self.health = self.body.health
+            # investigate/communicate: stationary; drives steer future candidates
+            produced = self._communicate(sense, out) if act != "rest" else []
+            self.last_action_log = {"candidate": cand.to_dict(),
+                                    "goal": goal.to_dict() if goal is not None else None,
+                                    "produced_symbols": produced}
+            self._autonomy_energy_before = energy_before
+            self._autonomy_novel = novel
+        else:
+            explore = float(self.genome.params.get("exploration", 0.5))
+            rng = np.random.RandomState(derive_subseed(int(self.seeds.get("organism_seed", 44)),
+                                                       f"move:{self.tick}"))
+            food_now = float(sense["food_gradient"])
+            hungry = self.energy < 0.7
+            # tumble (pick new heading) when gradient worsens while hungry, or randomly when exploring
+            if (hungry and food_now < self.last_food - 1e-6) or rng.rand() < explore * 0.25:
+                self.heading = (int(rng.randint(-1, 2)), int(rng.randint(-1, 2)))
+            self.last_food = food_now
+            if act in ("act_in_environment", "explore") or hungry or rng.rand() < 0.5:
+                dx, dy = self.heading
+                if dx == 0 and dy == 0:
+                    dx = int(rng.randint(-1, 2))
+                if float(sense["hazard_gradient"]) > 0.5 and rng.rand() < 0.7:
+                    dx, dy = -dx, int(rng.randint(-1, 2))  # escape reflex
+                world.apply_move(self.id, dx, dy)
         consumed = world.consume(self.id)
         reward = 0.0
         if consumed > 0:
@@ -119,7 +249,11 @@ class Organism:
             self.skills["forage"] = min(1.0, self.skills["forage"] + 0.02)
             reward = 0.5
         if world.hazard_at(self.id):
-            self.health = max(0.0, self.health - 0.05)
+            if self.autonomy_mode and self.body is not None:
+                self.body.apply_damage(0.05, "hazard")
+                self.health = self.body.health
+            else:
+                self.health = max(0.0, self.health - 0.05)
             self.skills["avoid"] = min(1.0, self.skills["avoid"] + 0.01)
             reward -= 0.3
         # P12: store outcome for next tick's neural plasticity (closed loop).
@@ -143,24 +277,42 @@ class Organism:
                         {"episode_index": len(self.episodes) - 1})
         # development tick (cheap, every 5 ticks); growth costs energy
         if self.tick % 5 == 0:
-            n_born = self.dev_engine.neurogenesis(self.graph, self.dev, self.tick, self.events,
-                                                  self.id, self.generation, max_new=2)
-            self.energy = max(0.0, self.energy - 0.02 * n_born)
-            self._sync_brain_to_graph()
-            self.dev_engine.differentiate(self.graph, self.dev, self.tick, self.events,
-                                          self.id, self.generation)
-            self.dev_engine.migrate(self.graph, self.dev, self.tick, self.events,
-                                    self.id, self.generation)
-            self.dev_engine.grow_projections(self.graph, self.dev, self.tick, self.events,
-                                             self.id, self.generation, max_candidates=4)
-            self.dev_engine.prune(self.graph, self.dev, self.tick,
-                                  self.brain.state.activations, self.events,
-                                  self.id, self.generation)
-            self.dev_engine.apoptosis(self.graph, self.dev, self.tick,
-                                      self.brain.state.activations, self.age,
-                                      self.events, self.id, self.generation)
-            self._sync_brain_to_graph()
-        # aging + lifecycle
+            if self.autonomy_mode and self.living is not None:
+                # resource-constrained growth: rich organisms may grow, poor may
+                # not; the v2 growth_budget_fraction gene allocates metabolic
+                # budget to structural expansion (STAGE I: evolvable allocation).
+                frac = float(self.genome.get("growth_budget_fraction", 0.5))
+                budget = int(np.clip((self.energy - 0.4) * 5.0 * (0.5 + frac), 0, 4))
+                summary = self.living.run_development_cycle(
+                    self.tick, activity=self.brain.state.activations,
+                    organism_id=self.id, generation=self.generation,
+                    growth_budget=budget)
+                self.energy = max(0.0, self.energy - summary["energy_spent"])
+                self._sync_brain_to_graph()
+            else:
+                n_born = self.dev_engine.neurogenesis(self.graph, self.dev, self.tick, self.events,
+                                                      self.id, self.generation, max_new=2)
+                self.energy = max(0.0, self.energy - 0.02 * n_born)
+                self._sync_brain_to_graph()
+                self.dev_engine.differentiate(self.graph, self.dev, self.tick, self.events,
+                                              self.id, self.generation)
+                self.dev_engine.migrate(self.graph, self.dev, self.tick, self.events,
+                                        self.id, self.generation)
+                self.dev_engine.grow_projections(self.graph, self.dev, self.tick, self.events,
+                                                 self.id, self.generation, max_candidates=4)
+                self.dev_engine.prune(self.graph, self.dev, self.tick,
+                                      self.brain.state.activations, self.events,
+                                      self.id, self.generation)
+                self.dev_engine.apoptosis(self.graph, self.dev, self.tick,
+                                          self.brain.state.activations, self.age,
+                                          self.events, self.id, self.generation)
+                self._sync_brain_to_graph()
+        if self.autonomy_mode and self.autonomy is not None:
+            self.body.energy = self.energy
+            self.autonomy.update_goals(
+                self.tick, self.energy - getattr(self, "_autonomy_energy_before", self.energy),
+                getattr(self, "_autonomy_novel", False),
+                float(out.get("prediction_error", 0.0)))        # aging + lifecycle
         self.age += 1
         self.tick += 1
         world.tick = max(world.tick, self.tick)
@@ -169,7 +321,11 @@ class Organism:
             self.die("health" if self.health <= 0.0 else "age")
         return {"organism_id": self.id, "alive": self.alive, "action": act,
                 "reward": round(reward, 4), "energy": round(self.energy, 4),
-                "stage": self.stage.value}
+                "stage": self.stage.value,
+                "action_kind": act,
+                "goal": (self.autonomy.active_goal().kind
+                         if (self.autonomy_mode and self.autonomy is not None
+                             and self.autonomy.active_goal() is not None) else None)}
 
     def _sync_brain_to_graph(self):
         """Resize brain state arrays after structural growth (new neurons start silent)."""
@@ -194,9 +350,13 @@ class Organism:
             setattr(self.brain, attr, np.array([i for i in idx if i < n], dtype=np.int32))
 
     # ---- sleep / dream (real replay of own episodes) ----
-    def sleep(self, replay_k: int = 3) -> Dict[str, Any]:
+    def sleep(self, replay_k: Optional[int] = None) -> Dict[str, Any]:
         if not self.alive:
             return {"slept": False}
+        if replay_k is None:
+            # v2 sleep_duration gene (1..8 episodes); legacy default 3
+            replay_k = int(1 + round(self.genome.get("sleep_duration", 0.4) * 7)) \
+                if self.genome.version == "2.0" else 3
         self.events.log("SLEEP_STARTED", self.tick, self.id, self.generation, {})
         recent = self.episodes[-replay_k:] if self.episodes else []
         self.events.log("DREAM_STARTED", self.tick, self.id, self.generation,
@@ -287,6 +447,12 @@ class Organism:
                     "alive": self.dev.alive},
             "episodes": self.episodes, "semantic": self.semantic,
             "cultural_knowledge": self.cultural_knowledge, "skills": self.skills,
+            "autonomy_mode": self.autonomy_mode,
+            "autonomy": self.autonomy.snapshot() if self.autonomy is not None else None,
+            "body": self.body.to_dict() if self.body is not None else None,
+            "living_brain": self.living.snapshot() if self.living is not None else None,
+            "language": self.language.snapshot() if self.language is not None else None,
+            "social": self.social_mem.snapshot() if self.social_mem is not None else None,
         }
 
     @classmethod
@@ -351,6 +517,32 @@ class Organism:
         org.cultural_knowledge = dict(snap["cultural_knowledge"]); org.skills = dict(snap["skills"])
         org.cause_of_death = snap.get("cause_of_death", "")
         org.events = EventLog()
+        # STAGE E/F additive state (absent in legacy snapshots -> legacy mode)
+        org.autonomy_mode = bool(snap.get("autonomy_mode", False))
+        org.autonomy = None
+        org.body = None
+        org.living = None
+        org.language = None
+        org.social_mem = None
+        org.last_action_log = {}
+        if org.autonomy_mode:
+            from src.autonomy.engine import AutonomyEngine
+            from src.embodiment.body import BodyState
+            from src.brain.living import LivingBrain
+            org.autonomy = AutonomyEngine.restore(snap["autonomy"]) if snap.get("autonomy") \
+                else AutonomyEngine(seed=int(org.seeds.get("organism_seed", 44)))
+            org.body = BodyState.from_dict(snap["body"]) if snap.get("body") else BodyState(
+                energy=org.energy, health=org.health, position=org.position)
+            org.living = LivingBrain.attach(
+                org.graph, org.dev, org.dev_engine,
+                int(org.seeds.get("organism_seed", 44)),
+                payload=snap.get("living_brain"))
+            from src.language.grounded import GroundedLanguageSystem
+            from src.social.model import SocialMemory
+            org.language = GroundedLanguageSystem.restore(snap["language"]) \
+                if snap.get("language") else None
+            org.social_mem = SocialMemory.restore(snap["social"]) \
+                if snap.get("social") else None
         return org
 
 

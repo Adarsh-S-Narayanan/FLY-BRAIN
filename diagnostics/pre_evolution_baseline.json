@@ -1,0 +1,50 @@
+{
+  "baseline_version": "1.0",
+  "date": "2026-09-15",
+  "git_commit": "aa5065c",
+  "tag": "v2.0.0",
+  "never_overwrite": true,
+  "purpose": "Hard pre-evolution baseline. Every later milestone compares itself against these exact observed results. Regenerating this file is forbidden; later baselines must be new files.",
+  "observed": {
+    "test_suite": {
+      "command": ".venv/Scripts/python.exe -m unittest discover -s tests -p 'test_*.py'",
+      "tests_run": 111,
+      "result": "OK",
+      "duration_sec": 78.346,
+      "suites": {
+        "test_suite": 11, "test_alife": 12, "test_provenance": 6, "test_lif": 11,
+        "test_vulkan_lifecycle": 5, "test_runtime_continuation": 3,
+        "test_evolution_robustness": 3, "test_memory_robustness": 5,
+        "test_engine_stress": 1, "test_ui_api": 10, "test_llm_local": 4,
+        "test_adversarial": 13, "test_campaign": 2, "test_directionality": 8,
+        "test_plasticity_causal": 4, "test_parity": 9
+      }
+    },
+    "acceptance_matrix": {
+      "command": ".venv/Scripts/python.exe scripts/run_acceptance_matrix.py",
+      "gates": 32,
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0,
+      "result": "PASSED",
+      "report": "diagnostics/acceptance_matrix.json"
+    },
+    "docs_consistency": {
+      "command": ".venv/Scripts/python.exe scripts/verify_docs_consistency.py",
+      "result": "PASSED"
+    },
+    "environment": {
+      "os": "Windows 11",
+      "gpu": "AMD Radeon(TM) Graphics (Vulkan 1.3)",
+      "llm": "llm/gguf/MiniCPM5-2B-Q8_0.gguf present"
+    }
+  },
+  "compatibility_contract": [
+    "GraphMode.REAL / SPATIAL_SURROGATE / SYNTHETIC_TEST separation must remain.",
+    "111 tests must keep passing (may only grow).",
+    "32 acceptance gates must keep passing or become explicit SKIP with reason.",
+    "CPU reference LIF behavior must remain the correctness baseline.",
+    "Existing CLI commands, UI routes, and checkpoint formats must remain readable.",
+    "LLM failure semantics: unavailable model must never produce text."
+  ]
+}

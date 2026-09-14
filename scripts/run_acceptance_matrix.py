@@ -32,7 +32,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
     matrix = {}
     
     # 1. repository_cleanliness
-    print("[1/32] Evaluating repository_cleanliness...")
+    print("[1/44] Evaluating repository_cleanliness...")
     clean = True
     reasons = []
     # Check that required dirs exist
@@ -46,7 +46,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
     }
 
     # 2. provenance_manifest_integrity
-    print("[2/32] Evaluating provenance_manifest_integrity...")
+    print("[2/44] Evaluating provenance_manifest_integrity...")
     prov_file = os.path.join(PROJECT_ROOT, "manifests", "malecns_provenance.json")
     if os.path.exists(prov_file):
         with open(prov_file, "r", encoding="utf-8") as f:
@@ -83,7 +83,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["provenance_manifest_integrity"] = {"status": "FAIL", "reason": "Manifest file missing"}
 
     # 3. connectome_contract_separation
-    print("[3/32] Evaluating connectome_contract_separation...")
+    print("[3/44] Evaluating connectome_contract_separation...")
     modes = {m.value for m in GraphMode}
     expected_modes = {"REAL", "SPATIAL_SURROGATE", "SYNTHETIC_TEST"}
     if modes == expected_modes:
@@ -98,7 +98,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 4. biological_vs_synthetic_separation
-    print("[4/32] Evaluating biological_vs_synthetic_separation...")
+    print("[4/44] Evaluating biological_vs_synthetic_separation...")
     real_graph = get_or_create_circuit(128, mode=GraphMode.REAL, seed=42)
     synth_graph = get_or_create_circuit(128, mode=GraphMode.SYNTHETIC_TEST, seed=42)
     
@@ -118,7 +118,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 5. spatial_surrogate_behavior
-    print("[5/32] Evaluating spatial_surrogate_behavior...")
+    print("[5/44] Evaluating spatial_surrogate_behavior...")
     surr_graph = get_or_create_circuit(128, mode=GraphMode.SPATIAL_SURROGATE, seed=42)
     is_surr = (surr_graph.provenance_status == ProvenanceStatus.SURROGATE)
     has_coords = surr_graph.coordinates is not None and len(surr_graph.coordinates) == 128
@@ -136,7 +136,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 6. lif_dynamics_correctness
-    print("[6/32] Evaluating lif_dynamics_correctness...")
+    print("[6/44] Evaluating lif_dynamics_correctness...")
     num_n = 4
     row_offsets = np.array([0, 0, 0, 0, 0], dtype=np.int32)
     col_indices = np.array([], dtype=np.int32)
@@ -165,7 +165,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
     }
 
     # 7. refractory_period_invariance
-    print("[7/32] Evaluating refractory_period_invariance...")
+    print("[7/44] Evaluating refractory_period_invariance...")
     # Feeding high input while refractory > 0 must suppress spike
     p_in_ref = np.array([-70.0, -70.0, -70.0, -70.0], dtype=np.float32)
     r_in_ref = np.array([0, 2, 0, 0], dtype=np.int32) # Neuron 1 in refractory
@@ -182,7 +182,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
     }
 
     # 8. reset_potential_invariance
-    print("[8/32] Evaluating reset_potential_invariance...")
+    print("[8/44] Evaluating reset_potential_invariance...")
     reset_invariant = (p_out2[1] == -70.0 and s_out2[1] == 1.0)
     matrix["reset_potential_invariance"] = {
         "status": "PASS" if reset_invariant else "FAIL",
@@ -190,7 +190,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
     }
 
     # 9. vulkan_discovery_and_selection
-    print("[9/32] Evaluating vulkan_discovery_and_selection...")
+    print("[9/44] Evaluating vulkan_discovery_and_selection...")
     try:
         vk = VulkanBrainBackend()
         dev_name = vk.device_name
@@ -207,7 +207,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         vk_available = False
 
     # 10. persistent_resource_lifecycle
-    print("[10/32] Evaluating persistent_resource_lifecycle...")
+    print("[10/44] Evaluating persistent_resource_lifecycle...")
     if vk_available:
         try:
             test_circuit = get_or_create_circuit(64, mode=GraphMode.SYNTHETIC_TEST, seed=42)
@@ -252,7 +252,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 11. cpu_vulkan_numerical_parity
-    print("[11/32] Evaluating cpu_vulkan_numerical_parity...")
+    print("[11/44] Evaluating cpu_vulkan_numerical_parity...")
     if vk_available:
         try:
             from src.compute.validator import run_cpu_gpu_validation
@@ -283,7 +283,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 12. single_loop_telemetry_isolation
-    print("[12/32] Evaluating single_loop_telemetry_isolation...")
+    print("[12/44] Evaluating single_loop_telemetry_isolation...")
     try:
         engine = SimulationEngine()
         engine.start()
@@ -305,7 +305,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 13. thread_lock_concurrency
-    print("[13/32] Evaluating thread_lock_concurrency...")
+    print("[13/44] Evaluating thread_lock_concurrency...")
     try:
         engine = SimulationEngine()
         engine.start()
@@ -327,7 +327,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 14. deterministic_experiment_replication
-    print("[14/32] Evaluating deterministic_experiment_replication...")
+    print("[14/44] Evaluating deterministic_experiment_replication...")
     try:
         exp_mgr = ExperimentManager()
         exp_a = exp_mgr.run_experiment(
@@ -356,7 +356,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 15. local_model_degradation_honesty
-    print("[15/32] Evaluating local_model_degradation_honesty...")
+    print("[15/44] Evaluating local_model_degradation_honesty...")
     try:
         from src.trainer.cognitive import CognitiveTrainer
         cog = CognitiveTrainer()
@@ -374,7 +374,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 16. continuous_learning_weight_change
-    print("[16/32] Evaluating continuous_learning_weight_change...")
+    print("[16/44] Evaluating continuous_learning_weight_change...")
     try:
         circ = get_or_create_circuit(64, mode=GraphMode.SYNTHETIC_TEST, seed=42)
         initial_weights = circ.weights.copy()
@@ -398,7 +398,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 17. ui_no_blocking_alerts
-    print("[17/32] Evaluating ui_no_blocking_alerts...")
+    print("[17/44] Evaluating ui_no_blocking_alerts...")
     html_path = os.path.join(PROJECT_ROOT, "src", "ui", "static", "index.html")
     if os.path.exists(html_path):
         with open(html_path, "r", encoding="utf-8") as f:
@@ -419,7 +419,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["ui_no_blocking_alerts"] = {"status": "FAIL", "reason": "index.html not found"}
 
     # 18. full_pipeline_e2e_runnable
-    print("[18/32] Evaluating full_pipeline_e2e_runnable...")
+    print("[18/44] Evaluating full_pipeline_e2e_runnable...")
     try:
         circ = get_or_create_circuit(128, mode=GraphMode.REAL, seed=42)
         rt = BrainRuntime(circ, use_gpu=vk_available, seed=42)
@@ -442,7 +442,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
 
     # 19. documentation_claim_consistency
-    print("[19/32] Evaluating documentation_claim_consistency...")
+    print("[19/44] Evaluating documentation_claim_consistency...")
     from scripts.verify_docs_consistency import verify_docs_consistency
     docs_ok = verify_docs_consistency()
     matrix["documentation_claim_consistency"] = {
@@ -451,7 +451,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
     }
 
     # 20. alife_branch_replay_determinism
-    print("[20/32] Evaluating alife_branch_replay_determinism...")
+    print("[20/44] Evaluating alife_branch_replay_determinism...")
     try:
         import json as _json
         from src.common.determinism import SeedBundle
@@ -476,7 +476,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["alife_branch_replay_determinism"] = {"status": "FAIL", "reason": f"ALife replay failed: {e}"}
 
     # 21. developmental_structural_integrity
-    print("[21/32] Evaluating developmental_structural_integrity...")
+    print("[21/44] Evaluating developmental_structural_integrity...")
     try:
         from src.development.engine import DevelopmentEngine, DevelopmentState
         from src.genome.schema import Genome
@@ -510,7 +510,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["developmental_structural_integrity"] = {"status": "FAIL", "reason": f"Development failed: {e}"}
 
     # 22. genome_mutation_crossover_provenance
-    print("[22/32] Evaluating genome_mutation_crossover_provenance...")
+    print("[22/44] Evaluating genome_mutation_crossover_provenance...")
     try:
         from src.genome.schema import Genome as _Genome
         from src.genome.operators import mutate_genome, crossover_genomes
@@ -532,7 +532,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["genome_mutation_crossover_provenance"] = {"status": "FAIL", "reason": f"Genome ops failed: {e}"}
 
     # 23. overlapping_reproduction
-    print("[23/32] Evaluating overlapping_reproduction...")
+    print("[23/44] Evaluating overlapping_reproduction...")
     try:
         from src.common.determinism import SeedBundle as _SB2
         from src.population.population import Population as _Pop2
@@ -561,7 +561,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["overlapping_reproduction"] = {"status": "FAIL", "reason": f"Reproduction failed: {e}"}
 
     # 24. cultural_transmission_gain
-    print("[24/32] Evaluating cultural_transmission_gain...")
+    print("[24/44] Evaluating cultural_transmission_gain...")
     try:
         from src.genome.schema import Genome as _G2
         from src.organism.organism import Organism as _Org
@@ -584,7 +584,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["cultural_transmission_gain"] = {"status": "FAIL", "reason": f"Teaching failed: {e}"}
 
     # 25. real_mode_zero_surrogate_edges
-    print("[25/32] Evaluating real_mode_zero_surrogate_edges...")
+    print("[25/44] Evaluating real_mode_zero_surrogate_edges...")
     try:
         import csv as _csv
         _pairs = set()
@@ -616,7 +616,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["real_mode_zero_surrogate_edges"] = {"status": "FAIL", "reason": f"Provenance gate failed: {e}"}
 
     # 26. csr_directionality
-    print("[26/32] Evaluating csr_directionality...")
+    print("[26/44] Evaluating csr_directionality...")
     try:
         from src.compute.cpu_reference import cpu_lif_step as _lif
         _ro = np.array([0, 0, 1], dtype=np.int32)   # row1 = incoming from neuron 0
@@ -643,7 +643,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["csr_directionality"] = {"status": "FAIL", "reason": f"Directionality failed: {e}"}
 
     # 27. biological_edge_semantics (weight transform provenance)
-    print("[27/32] Evaluating biological_edge_semantics...")
+    print("[27/44] Evaluating biological_edge_semantics...")
     try:
         _gp = get_or_create_circuit(64, mode=GraphMode.REAL, seed=42,
                                     cache_name="matrix_real_64.npz").provenance_metadata
@@ -659,7 +659,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["biological_edge_semantics"] = {"status": "FAIL", "reason": f"failed: {e}"}
 
     # 28. real_annotation_integrity
-    print("[28/32] Evaluating real_annotation_integrity...")
+    print("[28/44] Evaluating real_annotation_integrity...")
     try:
         from src.connectome.loader import load_raw_neurons as _lrn
         _n = _lrn()[0]
@@ -679,7 +679,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["real_annotation_integrity"] = {"status": "FAIL", "reason": f"failed: {e}"}
 
     # 29. plasticity_causal_effect
-    print("[29/32] Evaluating plasticity_causal_effect...")
+    print("[29/44] Evaluating plasticity_causal_effect...")
     try:
         from src.compute.cpu_reference import cpu_plasticity_step as _cps
         _ro = np.array([0, 0, 1], dtype=np.int32)
@@ -699,7 +699,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["plasticity_causal_effect"] = {"status": "FAIL", "reason": f"failed: {e}"}
 
     # 30. checkpoint_continuation
-    print("[30/32] Evaluating checkpoint_continuation...")
+    print("[30/44] Evaluating checkpoint_continuation...")
     try:
         from src.common.determinism import SeedBundle as _SB
         from src.population.population import Population as _P
@@ -724,7 +724,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["checkpoint_continuation"] = {"status": "FAIL", "reason": f"failed: {e}"}
 
     # 31. llm_model_discovery_and_inference
-    print("[31/32] Evaluating llm_model_discovery_and_inference...")
+    print("[31/44] Evaluating llm_model_discovery_and_inference...")
     try:
         from src.llm.discovery import discover_models as _dm
         from src.llm.runtime import LocalLLM as _L, GenerationConfig as _GC
@@ -757,7 +757,7 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         matrix["llm_model_discovery_and_inference"] = {"status": "FAIL", "reason": f"failed: {e}"}
 
     # 32. llm_failure_mode_and_tool_safety
-    print("[32/32] Evaluating llm_failure_mode_and_tool_safety...")
+    print("[32/44] Evaluating llm_failure_mode_and_tool_safety...")
     try:
         from src.llm.runtime import LocalLLM as _L2
         from src.llm.scientist import ScientistLoop as _SL, ToolSpec as _TS
@@ -774,6 +774,260 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
     except Exception as e:
         matrix["llm_failure_mode_and_tool_safety"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 33. living_brain_identity
+    print("[33/44] Evaluating living_brain_identity...")
+    try:
+        from src.brain.living import LivingBrain, DevelopmentState as _LBS, DevelopmentEngine as _LBE
+        from src.connectome.loader import get_or_create_circuit as _goc
+        _g = _goc(32, mode=GraphMode.SYNTHETIC_TEST, seed=7, cache_name="mx_lb.npz")
+        _lb = LivingBrain(_g, dev=_LBS.initialize(_g.num_neurons), engine=_LBE({}, 8),
+                          experiment_seed=7)
+        _before = _g.num_neurons
+        _lb.run_development_cycle(tick=5, growth_budget=3)
+        _new = [r for r in _lb._neurons.values() if r.birth_op == "neurogenesis"]
+        _ok = (_lb.validate() is None and _g.num_neurons >= _before
+               and all(r.provenance_class == "EMERGENT" for r in _new))
+        matrix["living_brain_identity"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": f"Persistent identities + EMERGENT provenance; growth {_before}->{_g.num_neurons}."
+        }
+    except Exception as e:
+        matrix["living_brain_identity"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 34. structural_growth_resource_constrained
+    print("[34/44] Evaluating structural_growth_resource_constrained...")
+    try:
+        _g = _goc(32, mode=GraphMode.SYNTHETIC_TEST, seed=9, cache_name="mx_lb2.npz")
+        _lb0 = LivingBrain(_g, dev=_LBS.initialize(_g.num_neurons), engine=_LBE({}, 10),
+                           experiment_seed=9)
+        _n0 = _g.num_neurons
+        _s0 = _lb0.run_development_cycle(tick=5, growth_budget=0)
+        _blocked = (_g.num_neurons == _n0 and _s0["ops"][0]["neurons_born"] == 0)
+        matrix["structural_growth_resource_constrained"] = {
+            "status": "PASS" if _blocked else "FAIL",
+            "reason": "Zero growth budget blocks neurogenesis (energy is the constraint)."
+        }
+    except Exception as e:
+        matrix["structural_growth_resource_constrained"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 35. eligibility_neuromodulation
+    print("[35/44] Evaluating eligibility_neuromodulation...")
+    try:
+        from src.brain.eligibility import EligibilityState as _ES, EligibilityEngine as _EE, \
+            NeuromodulationConfig as _NC
+        from src.brain.runtime import BrainRuntime as _BRT
+        _g = _goc(32, mode=GraphMode.SYNTHETIC_TEST, seed=11, cache_name="mx_elig.npz")
+        _rt = _BRT(_g, use_gpu=False, plasticity_mode="v2_eligibility",
+                   neuromod=_NC(w_reward=0.0, w_novelty=1.0))
+        _rng = np.random.RandomState(1)
+        _w0 = _g.weights.copy()
+        _moved = False
+        for _ in range(8):
+            _o = _rt.step(sensory_inputs={"visual": _rng.uniform(0, 1, 16).astype(np.float32)})
+            _moved = _moved or _o["synapses_updated"] > 0
+        _ok = _moved and _rt.plasticity_mode == "v2_eligibility" \
+            and bool(np.any(np.abs(_g.weights - _w0) > 1e-5))
+        matrix["eligibility_neuromodulation"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "v2 traces + novelty-driven neuromodulation change weights (reward=0)."
+        }
+    except Exception as e:
+        matrix["eligibility_neuromodulation"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 36. autonomy_self_generated_goals
+    print("[36/44] Evaluating autonomy_self_generated_goals...")
+    try:
+        from src.common.determinism import SeedBundle as _SB2
+        from src.population.population import Population as _P2
+        _seeds = _SB2(experiment_seed=121, generation_seed=122, organism_seed=123,
+                      development_seed=124, mutation_seed=125, world_seed=126,
+                      teacher_seed=127)
+        _pop = _P2(3, _seeds, GraphMode.SYNTHETIC_TEST, 32, experiment_seed=121,
+                   autonomy_mode=True, genome_version="2.0")
+        _goal_ticks = 0
+        for _ in range(20):
+            _pop.step(1)
+            _goal_ticks += sum(1 for o in _pop.living()
+                               if o.autonomy is not None and o.autonomy._goal_seq > 0)
+        _all = all(o.autonomy._goal_seq > 0 for o in _pop.living())
+        _ok = _goal_ticks > 0 and _all
+        matrix["autonomy_self_generated_goals"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": f"All living organisms self-generate goals; no human task commands."
+        }
+    except Exception as e:
+        matrix["autonomy_self_generated_goals"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 37. grounded_language_and_social
+    print("[37/44] Evaluating grounded_language_and_social...")
+    try:
+        from src.language.grounded import GroundedLanguageSystem as _GLS
+        from src.social.model import SocialMemory as _SM
+        _ls = _GLS(seed=1)
+        _c = _ls.ground_concept("food", [1.0, 0, 0, 0, 0, 0, 0, 0], "sensory")
+        _ls.learn_symbol("sym0", _c.concept_id)
+        _prod = _ls.produce({"salient_concepts": [_c.concept_id]})
+        _comp = _ls.comprehend(_prod)
+        _sm = _SM("a")
+        for _t in range(6):
+            _sm.record_interaction("teacher", _t, "taught_by", 0.8)
+        for _t in range(6):
+            _sm.record_interaction("rival", _t, "competed", -0.8)
+        _ok = (_prod == ["sym0"] and _comp == [_c.concept_id]
+               and _sm.trust_of("teacher") > _sm.trust_of("rival"))
+        matrix["grounded_language_and_social"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "Symbols bind to grounded concepts; trust emerges from outcomes."
+        }
+    except Exception as e:
+        matrix["grounded_language_and_social"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 38. genome_v2_architecture_genes
+    print("[38/44] Evaluating genome_v2_architecture_genes...")
+    try:
+        from src.genome.schema import Genome as _GP, GENOME_VERSION as _GV2
+        from src.evolution.speciation import genome_distance as _gdist
+        _v2 = _GP.founder(31)
+        _v1 = _GP.founder(31, legacy=True)
+        _ok = (_v2.version == _GV2 and "eligibility_decay" in _v2.params
+               and _v1.version == "1.0" and len(_v1.params) == 15
+               and _gdist(_v2, _v2) == 0.0)
+        matrix["genome_v2_architecture_genes"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "v2 encodes learning architecture; v1 legacy remains valid."
+        }
+    except Exception as e:
+        matrix["genome_v2_architecture_genes"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 39. speciation_evidence
+    print("[39/44] Evaluating speciation_evidence...")
+    try:
+        from src.genome.schema import Genome as _GP2
+        from src.evolution.speciation import detect_divergence as _dd
+        _p = _GP2.founder(41)
+        _far = _GP2.founder(42)
+        _far.params["exploration"] = 1.0
+        _far.params["sociality"] = 0.0
+        _far.params["teaching_ability"] = 1.0
+        _far.params["metabolism_rate"] = 0.1
+        _far.validate()
+        _div = _dd([("p", _p)], [("c", _far)], 10, 0.05)
+        _ok = len(_div) == 1 and _div[0].genome_distance_from_parent > 0.05
+        matrix["speciation_evidence"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "Divergence recorded only with measured genome distance."
+        }
+    except Exception as e:
+        matrix["speciation_evidence"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 40. llm_control_plane_safety
+    print("[40/44] Evaluating llm_control_plane_safety...")
+    try:
+        from src.llm.control import ControlPlane as _CP, ResearchRuntime as _RR, \
+            CommandEnvelope as _CE
+        _cp = _CP(_RR(experiment_seed=9))
+        _r1 = _cp.execute(_CE("SPAWN_POPULATION", {"size": 999}))
+        _r2 = _cp.execute(_CE("SAVE_CHECKPOINT", {"name": "x'; import os; os.system('id')"}))
+        _r3 = _cp.execute(_CE("SPAWN_POPULATION", {"size": 2}))
+        _r4 = _cp.execute(_CE("START_RUN", {"ticks": 3}))
+        _ok = (_r1["status"] == "REJECTED" and _r2["status"] == "REJECTED"
+               and _r3["status"] == "EXECUTED" and _r4["status"] == "EXECUTED")
+        matrix["llm_control_plane_safety"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "Invalid/shell commands rejected; valid typed commands execute."
+        }
+    except Exception as e:
+        matrix["llm_control_plane_safety"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 41. research_memory_chain
+    print("[41/44] Evaluating research_memory_chain...")
+    try:
+        import tempfile as _tf
+        from src.llm.research_memory import ResearchMemory as _RM
+        with _tf.TemporaryDirectory() as _td:
+            _m = _RM(os.path.join(_td, "rm.jsonl"))
+            _m.append("experiment", {"id": "e1", "status": "EXECUTED"})
+            _m.append("hypothesis", {"id": "h1"})
+            _m.append("experiment", {"id": "e2", "status": "FAILED"})
+            _ok = _m.verify_chain() and len(_m.failed_experiments()) == 1 \
+                and len(_m.successful_protocols()) == 1
+        matrix["research_memory_chain"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "Hash-chained append-only research memory; tamper-evident."
+        }
+    except Exception as e:
+        matrix["research_memory_chain"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 42. deeptime_escalation_replay
+    print("[42/44] Evaluating deeptime_escalation_replay...")
+    try:
+        from src.timeline.deeptime import DeepTimeRunner as _DTR, DeepTimeConfig as _DTC
+        from src.common.determinism import SeedBundle as _SB3
+        from src.population.population import Population as _P3
+        _seeds = _SB3(experiment_seed=131, generation_seed=132, organism_seed=133,
+                      development_seed=134, mutation_seed=135, world_seed=136,
+                      teacher_seed=137)
+        _pop = _P3(3, _seeds, GraphMode.SYNTHETIC_TEST, 32, experiment_seed=131,
+                   autonomy_mode=True, genome_version="2.0")
+        _r = _DTR(_pop, _DTC(coarse_ticks_per_step=10))
+        _r.fast_forward(2)
+        _esc = _r.escalate("gate42")
+        _rep = _r.replay_high_resolution("gate42", ticks=3)
+        _ok = (_rep["status"] == "EXECUTED" and _rep["checkpoint_hash_verified"]
+               and _r.ledger["approximation_model"] != "")
+        matrix["deeptime_escalation_replay"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "Coarse deep-time escalates to full-res checkpoint; replay hash-verified."
+        }
+    except Exception as e:
+        matrix["deeptime_escalation_replay"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 43. milestone_evidence
+    print("[43/44] Evaluating milestone_evidence...")
+    try:
+        from src.science.milestones import detect_milestones as _dm2, \
+            milestone_certificate as _mc
+        from src.common.determinism import SeedBundle as _SB4
+        from src.population.population import Population as _P4
+        _seeds = _SB4(experiment_seed=141, generation_seed=142, organism_seed=143,
+                      development_seed=144, mutation_seed=145, world_seed=146,
+                      teacher_seed=147)
+        _pop = _P4(3, _seeds, GraphMode.SYNTHETIC_TEST, 32, experiment_seed=141,
+                   autonomy_mode=True, genome_version="2.0")
+        _pop.organisms[0].age = 70
+        _pop.organisms[1].age = 70
+        _pop.step(10)
+        _pop.reproduce(2)
+        _ms = _dm2(_pop)
+        _ok = all(m.get("evidence") for m in _ms) and len(_ms) >= 1 \
+            and any(m["milestone"] == "OVERLAPPING_GENERATIONS" for m in _ms)
+        if _ms:
+            _cert = _mc(_ms[0], 141)
+            _ok = _ok and _cert["valid"]
+        matrix["milestone_evidence"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": f"Detected {[m['milestone'] for m in _ms]} with evidence + certificate."
+        }
+    except Exception as e:
+        matrix["milestone_evidence"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 44. benchmark_fairness
+    print("[44/44] Evaluating benchmark_fairness...")
+    try:
+        from src.research.benchmark import run_flybrain_arm as _fb, \
+            run_llm_only_arm as _lo, run_benchmark_suite as _bs
+        _fb_res = _fb(seed=151, train_ticks=15, delay_ticks=5)
+        _lo_res = _lo(seed=151)
+        _ok = (_fb_res["budget"]["training_exposure_ticks"] == 15
+               and _lo_res["status"] in ("MEASURED", "SKIP")
+               and (_lo_res["status"] != "SKIP" or _lo_res.get("reason")))
+        matrix["benchmark_fairness"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "Per-arm budgets documented; LLM arms SKIP with reason when unmet."
+        }
+    except Exception as e:
+        matrix["benchmark_fairness"] = {"status": "FAIL", "reason": f"failed: {e}"}
 
     # Summary
     pass_count = sum(1 for v in matrix.values() if v["status"] == "PASS")

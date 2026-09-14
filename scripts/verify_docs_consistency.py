@@ -126,6 +126,41 @@ def verify_docs_consistency() -> bool:
     else:
         inconsistencies.append("manifests/malecns_provenance.json not found")
 
+    # 7. Verification contract conformance (verification_contract.json is normative)
+    contract_path = os.path.join(PROJECT_ROOT, "diagnostics", "verification_contract.json")
+    if os.path.exists(contract_path):
+        with open(contract_path, "r", encoding="utf-8") as f:
+            contract = json.load(f)
+        doc_files = ["README.md", "docs/alife_architecture.md", "final_verification_report.md"]
+        for df in doc_files:
+            p = os.path.join(PROJECT_ROOT, df)
+            if not os.path.exists(p):
+                inconsistencies.append(f"verification contract: doc not found: {df}")
+                continue
+            with open(p, "r", encoding="utf-8") as f:
+                text = f.read().lower()
+            # 'bit-exact' is reserved for CPU deterministic replay/replay-hash claims;
+            # it must never *affirm* CPU/Vulkan floating-point parity. Explicit
+            # negations ("NOT bit-exact") are the correct usage and must pass.
+            violation = False
+            for line in text.splitlines():
+                if "bit-exact" not in line:
+                    continue
+                if ("parity" in line or "vulkan" in line):
+                    negated = ("not bit-exact" in line or "not-bit-exact" in line
+                               or "kein bit-exact" in line)
+                    if not negated:
+                        inconsistencies.append(
+                            f"verification contract violation in {df}: "
+                            f"'bit-exact' affirms parity/Vulkan claim: {line.strip()[:90]}")
+                        violation = True
+                        break
+            if not violation:
+                print(f"Verified verification-contract terminology: {df}")
+        print("Verified diagnostics/verification_contract.json conformance")
+    else:
+        inconsistencies.append("diagnostics/verification_contract.json not found")
+
     print("=" * 60)
     if inconsistencies:
         print(f"FAILED: {len(inconsistencies)} documentation/code inconsistencies found:")

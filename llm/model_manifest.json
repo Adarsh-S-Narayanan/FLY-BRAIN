@@ -1,27 +1,3 @@
 {
-  "models": [
-    {
-      "path": "llm\\gguf\\MiniCPM5-2B-Q8_0.gguf",
-      "filename": "MiniCPM5-2B-Q8_0.gguf",
-      "size_bytes": 2679710688,
-      "sha256": "c5415f8989bf88a8288f1b55a3cc371af53c07b0faa220a63bd7a990cfaba078",
-      "architecture": "llama",
-      "model_name": "MiniCPM5 2.6B",
-      "size_label": "2.6B",
-      "quantization": "MOSTLY_Q8_0",
-      "context_length": 131072,
-      "embedding_length": 2048,
-      "block_count": 42,
-      "bos_token_id": 0,
-      "eos_token_id": 1,
-      "has_chat_template": true,
-      "status": "DISCOVERED",
-      "extra": {
-        "mtime": 1789416790.593281,
-        "heads": 16,
-        "heads_kv": 2,
-        "tensor_count": 381
-      }
-    }
-  ]
+  "models": []
 }

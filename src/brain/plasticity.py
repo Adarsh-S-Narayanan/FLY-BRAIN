@@ -52,6 +52,9 @@ class PlasticityEngine:
                 # Three-factor rule: pre * post * reward - decay
                 delta = self.learning_rate * reward * (a_pre * a_post - self.weight_decay * w)
                 graph.weights[k] = float(np.clip(w + delta, self.min_weight, self.max_weight))
+        # Provenance: weights changed -> graph hash MUST be refreshed
+        # (stale hashes would silently break snapshot/restore equivalence).
+        graph.graph_hash = graph.compute_graph_hash()
         return M
 
     def prune_weak_synapses(self, graph: ConnectomeGraph) -> int:

@@ -1,0 +1,779 @@
+{
+  "artifact": "milestone_evidence_v1",
+  "seed": 301,
+  "git_commit": "aa5065c21fb1d5dbf28512002f391c122248eba0",
+  "captured_ts": 1789429584.8725276,
+  "date": "2026-09-15 01:46:24",
+  "config": {
+    "population_size": 5,
+    "coarse_steps": 6,
+    "coarse_ticks_per_step": 20,
+    "approximation_model": "aggregated_lifecycle_events_v1"
+  },
+  "ledger": {
+    "resolution": "coarse",
+    "approximation_model": "aggregated_lifecycle_events_v1",
+    "coarse_steps": 6,
+    "sim_ticks": 120,
+    "generations_seen": [
+      0
+    ],
+    "births": 0,
+    "deaths": 2,
+    "teaching_sessions": 0,
+    "max_species_count": 1,
+    "milestones": 12,
+    "events": 1
+  },
+  "events": [
+    {
+      "coarse_step": 1,
+      "sim_tick": 20,
+      "generation": 0,
+      "kind": "GENERATION_REACHED",
+      "payload": {
+        "generation": 0
+      }
+    }
+  ],
+  "milestones": [
+    {
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 38,
+        "expansion_ratio": 1.1875,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "brain_hash": "bb598166d7142a32",
+      "population_hash": "521abaaa364dd6ae20c81b4a30bca9f350fc6171c8404b042129f9afeeb503b0",
+      "world_hash": "1ef75d690a4787702fa79fe9e85fbbe1dee21d07986e59bb0174875927654356",
+      "tick": 20,
+      "captured_ts": 1789429574.9771168,
+      "resolution": "full"
+    },
+    {
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "cf4e360bc52a3efe",
+            "symbols": [
+              "sym1"
+            ]
+          },
+          {
+            "organism_id": "89114324e324ffd6",
+            "symbols": [
+              "sym2"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4,
+          "ff53bc0b3d1e6bec": 4,
+          "e941d88aaf98a634": 4
+        }
+      },
+      "population_hash": "521abaaa364dd6ae20c81b4a30bca9f350fc6171c8404b042129f9afeeb503b0",
+      "world_hash": "1ef75d690a4787702fa79fe9e85fbbe1dee21d07986e59bb0174875927654356",
+      "tick": 20,
+      "captured_ts": 1789429574.9771168,
+      "resolution": "full"
+    },
+    {
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 39,
+        "expansion_ratio": 1.2188,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "brain_hash": "e83df2f1534464c7",
+      "population_hash": "d96fd602209614f426569c946a9e48458b8a66d3084a45538adec0652a0b8ab0",
+      "world_hash": "a5ad29d1f930452622f273ccbf28c52601d21c8f0dc6e393199f87d95e828b0c",
+      "tick": 40,
+      "captured_ts": 1789429575.1431594,
+      "resolution": "full"
+    },
+    {
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "cf4e360bc52a3efe",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          },
+          {
+            "organism_id": "ff53bc0b3d1e6bec",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4,
+          "ff53bc0b3d1e6bec": 4,
+          "e941d88aaf98a634": 4
+        }
+      },
+      "population_hash": "d96fd602209614f426569c946a9e48458b8a66d3084a45538adec0652a0b8ab0",
+      "world_hash": "a5ad29d1f930452622f273ccbf28c52601d21c8f0dc6e393199f87d95e828b0c",
+      "tick": 40,
+      "captured_ts": 1789429575.1431594,
+      "resolution": "full"
+    },
+    {
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 39,
+        "expansion_ratio": 1.2188,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "brain_hash": "96be4a028dafd495",
+      "population_hash": "843e1fb9af02a3310859c5ee89a8ebc0c1efa654062af3b16881ab0755a0b28c",
+      "world_hash": "1b4eedeed4deab6dedf608ada0c6ab4cd723e87ff47735e26d87aadad4bcd745",
+      "tick": 60,
+      "captured_ts": 1789429575.2912018,
+      "resolution": "full"
+    },
+    {
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "cf4e360bc52a3efe",
+            "symbols": [
+              "sym3"
+            ]
+          },
+          {
+            "organism_id": "ff53bc0b3d1e6bec",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4,
+          "ff53bc0b3d1e6bec": 4,
+          "e941d88aaf98a634": 4
+        }
+      },
+      "population_hash": "843e1fb9af02a3310859c5ee89a8ebc0c1efa654062af3b16881ab0755a0b28c",
+      "world_hash": "1b4eedeed4deab6dedf608ada0c6ab4cd723e87ff47735e26d87aadad4bcd745",
+      "tick": 60,
+      "captured_ts": 1789429575.2912018,
+      "resolution": "full"
+    },
+    {
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 39,
+        "expansion_ratio": 1.2188,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "brain_hash": "b25438493e7cf439",
+      "population_hash": "939af10dae7952c0a33daedb3c12dc1845dfcfe5ccdd7aa036e9313de2e97fb7",
+      "world_hash": "e0497394ff64a78e0bb587e7f9aac350e1c586a40d386957daf57495dc00089a",
+      "tick": 80,
+      "captured_ts": 1789429575.4207306,
+      "resolution": "full"
+    },
+    {
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "b8ee5bf2dd767747",
+            "symbols": [
+              "sym3"
+            ]
+          },
+          {
+            "organism_id": "e941d88aaf98a634",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4,
+          "e941d88aaf98a634": 4
+        }
+      },
+      "population_hash": "939af10dae7952c0a33daedb3c12dc1845dfcfe5ccdd7aa036e9313de2e97fb7",
+      "world_hash": "e0497394ff64a78e0bb587e7f9aac350e1c586a40d386957daf57495dc00089a",
+      "tick": 80,
+      "captured_ts": 1789429575.4207306,
+      "resolution": "full"
+    },
+    {
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 45,
+        "expansion_ratio": 1.4062,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "brain_hash": "30036547695fb80e",
+      "population_hash": "b19c461537562508ce45d86af7cef93640fdfec5a26409b0ae18b525d3f5c8bc",
+      "world_hash": "da4648d7cc5807995ea3923625be3e1458d820648627f70bf9b17f1ed64000d3",
+      "tick": 100,
+      "captured_ts": 1789429575.5332541,
+      "resolution": "full"
+    },
+    {
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "b8ee5bf2dd767747",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          },
+          {
+            "organism_id": "e941d88aaf98a634",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4,
+          "e941d88aaf98a634": 4
+        }
+      },
+      "population_hash": "b19c461537562508ce45d86af7cef93640fdfec5a26409b0ae18b525d3f5c8bc",
+      "world_hash": "da4648d7cc5807995ea3923625be3e1458d820648627f70bf9b17f1ed64000d3",
+      "tick": 100,
+      "captured_ts": 1789429575.5332541,
+      "resolution": "full"
+    },
+    {
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 53,
+        "expansion_ratio": 1.6562,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "brain_hash": "943fde60b2952804",
+      "population_hash": "ed2c22b814786e742ddad8e5941ea93db9a6063fb20e541531a0a68ebef7aac5",
+      "world_hash": "3c05d90eabeeb53269c45c4ff54d23122f4daa79f2500f39e862698f250826de",
+      "tick": 120,
+      "captured_ts": 1789429575.6393032,
+      "resolution": "full"
+    },
+    {
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "b8ee5bf2dd767747",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4
+        }
+      },
+      "population_hash": "ed2c22b814786e742ddad8e5941ea93db9a6063fb20e541531a0a68ebef7aac5",
+      "world_hash": "3c05d90eabeeb53269c45c4ff54d23122f4daa79f2500f39e862698f250826de",
+      "tick": 120,
+      "captured_ts": 1789429575.6393032,
+      "resolution": "full"
+    }
+  ],
+  "certificates": [
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 38,
+        "expansion_ratio": 1.1875,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "population_hash": "521abaaa364dd6ae20c81b4a30bca9f350fc6171c8404b042129f9afeeb503b0",
+      "world_hash": "1ef75d690a4787702fa79fe9e85fbbe1dee21d07986e59bb0174875927654356",
+      "tick": 20,
+      "experiment_seed": 301,
+      "captured_ts": 1789429574.9771168,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "cf4e360bc52a3efe",
+            "symbols": [
+              "sym1"
+            ]
+          },
+          {
+            "organism_id": "89114324e324ffd6",
+            "symbols": [
+              "sym2"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4,
+          "ff53bc0b3d1e6bec": 4,
+          "e941d88aaf98a634": 4
+        }
+      },
+      "population_hash": "521abaaa364dd6ae20c81b4a30bca9f350fc6171c8404b042129f9afeeb503b0",
+      "world_hash": "1ef75d690a4787702fa79fe9e85fbbe1dee21d07986e59bb0174875927654356",
+      "tick": 20,
+      "experiment_seed": 301,
+      "captured_ts": 1789429574.9771168,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 39,
+        "expansion_ratio": 1.2188,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "population_hash": "d96fd602209614f426569c946a9e48458b8a66d3084a45538adec0652a0b8ab0",
+      "world_hash": "a5ad29d1f930452622f273ccbf28c52601d21c8f0dc6e393199f87d95e828b0c",
+      "tick": 40,
+      "experiment_seed": 301,
+      "captured_ts": 1789429575.1431594,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "cf4e360bc52a3efe",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          },
+          {
+            "organism_id": "ff53bc0b3d1e6bec",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4,
+          "ff53bc0b3d1e6bec": 4,
+          "e941d88aaf98a634": 4
+        }
+      },
+      "population_hash": "d96fd602209614f426569c946a9e48458b8a66d3084a45538adec0652a0b8ab0",
+      "world_hash": "a5ad29d1f930452622f273ccbf28c52601d21c8f0dc6e393199f87d95e828b0c",
+      "tick": 40,
+      "experiment_seed": 301,
+      "captured_ts": 1789429575.1431594,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 39,
+        "expansion_ratio": 1.2188,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "population_hash": "843e1fb9af02a3310859c5ee89a8ebc0c1efa654062af3b16881ab0755a0b28c",
+      "world_hash": "1b4eedeed4deab6dedf608ada0c6ab4cd723e87ff47735e26d87aadad4bcd745",
+      "tick": 60,
+      "experiment_seed": 301,
+      "captured_ts": 1789429575.2912018,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "cf4e360bc52a3efe",
+            "symbols": [
+              "sym3"
+            ]
+          },
+          {
+            "organism_id": "ff53bc0b3d1e6bec",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4,
+          "ff53bc0b3d1e6bec": 4,
+          "e941d88aaf98a634": 4
+        }
+      },
+      "population_hash": "843e1fb9af02a3310859c5ee89a8ebc0c1efa654062af3b16881ab0755a0b28c",
+      "world_hash": "1b4eedeed4deab6dedf608ada0c6ab4cd723e87ff47735e26d87aadad4bcd745",
+      "tick": 60,
+      "experiment_seed": 301,
+      "captured_ts": 1789429575.2912018,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 39,
+        "expansion_ratio": 1.2188,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "population_hash": "939af10dae7952c0a33daedb3c12dc1845dfcfe5ccdd7aa036e9313de2e97fb7",
+      "world_hash": "e0497394ff64a78e0bb587e7f9aac350e1c586a40d386957daf57495dc00089a",
+      "tick": 80,
+      "experiment_seed": 301,
+      "captured_ts": 1789429575.4207306,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "b8ee5bf2dd767747",
+            "symbols": [
+              "sym3"
+            ]
+          },
+          {
+            "organism_id": "e941d88aaf98a634",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4,
+          "e941d88aaf98a634": 4
+        }
+      },
+      "population_hash": "939af10dae7952c0a33daedb3c12dc1845dfcfe5ccdd7aa036e9313de2e97fb7",
+      "world_hash": "e0497394ff64a78e0bb587e7f9aac350e1c586a40d386957daf57495dc00089a",
+      "tick": 80,
+      "experiment_seed": 301,
+      "captured_ts": 1789429575.4207306,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 45,
+        "expansion_ratio": 1.4062,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "population_hash": "b19c461537562508ce45d86af7cef93640fdfec5a26409b0ae18b525d3f5c8bc",
+      "world_hash": "da4648d7cc5807995ea3923625be3e1458d820648627f70bf9b17f1ed64000d3",
+      "tick": 100,
+      "experiment_seed": 301,
+      "captured_ts": 1789429575.5332541,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "b8ee5bf2dd767747",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          },
+          {
+            "organism_id": "e941d88aaf98a634",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4,
+          "e941d88aaf98a634": 4
+        }
+      },
+      "population_hash": "b19c461537562508ce45d86af7cef93640fdfec5a26409b0ae18b525d3f5c8bc",
+      "world_hash": "da4648d7cc5807995ea3923625be3e1458d820648627f70bf9b17f1ed64000d3",
+      "tick": 100,
+      "experiment_seed": 301,
+      "captured_ts": 1789429575.5332541,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "STRUCTURAL_EXPANSION",
+      "evidence": {
+        "organism_id": "cf4e360bc52a3efe",
+        "seed_size": 32,
+        "current_size": 53,
+        "expansion_ratio": 1.6562,
+        "provenance_chain": [
+          "SYNTHETIC_SEED",
+          "EMERGENT"
+        ]
+      },
+      "population_hash": "ed2c22b814786e742ddad8e5941ea93db9a6063fb20e541531a0a68ebef7aac5",
+      "world_hash": "3c05d90eabeeb53269c45c4ff54d23122f4daa79f2500f39e862698f250826de",
+      "tick": 120,
+      "experiment_seed": 301,
+      "captured_ts": 1789429575.6393032,
+      "valid": true
+    },
+    {
+      "certificate_version": "milestone_cert_v1",
+      "milestone": "EMERGENT_COMMUNICATION",
+      "evidence": {
+        "producers": [
+          {
+            "organism_id": "b8ee5bf2dd767747",
+            "symbols": [
+              "sym2",
+              "sym3"
+            ]
+          }
+        ],
+        "vocabularies": {
+          "cf4e360bc52a3efe": 4,
+          "89114324e324ffd6": 4,
+          "b8ee5bf2dd767747": 4
+        }
+      },
+      "population_hash": "ed2c22b814786e742ddad8e5941ea93db9a6063fb20e541531a0a68ebef7aac5",
+      "world_hash": "3c05d90eabeeb53269c45c4ff54d23122f4daa79f2500f39e862698f250826de",
+      "tick": 120,
+      "experiment_seed": 301,
+      "captured_ts": 1789429575.6393032,
+      "valid": true
+    }
+  ],
+  "escalation": {
+    "checkpoint": "evidence_checkpoint",
+    "population_hash": "ed2c22b814786e742ddad8e5941ea93db9a6063fb20e541531a0a68ebef7aac5",
+    "sim_tick": 120
+  },
+  "replay_verification": {
+    "status": "EXECUTED",
+    "checkpoint_hash_verified": true,
+    "resolution": "full",
+    "replay_ticks": 5,
+    "final_population_hash": "2c13e1aa1b325b0bd5ba508c0adbf321d828c6c47add46c966eb354015fe7255",
+    "checkpoint_population_hash": "ed2c22b814786e742ddad8e5941ea93db9a6063fb20e541531a0a68ebef7aac5"
+  },
+  "benchmark_suite": {
+    "benchmark_version": "benchmark_v1",
+    "seed": 301,
+    "date": "2026-09-15 01:46:24",
+    "fairness_note": "Arms receive DIFFERENT modalities by design; budgets are documented per arm. Embodied categories are NOT_APPLICABLE for LLM-only. No aggregate superiority is claimed.",
+    "arms": [
+      {
+        "arm": "flybrain",
+        "budget": {
+          "compute_ticks": 70,
+          "training_exposure_ticks": 40,
+          "information_budget_chars": 0,
+          "tool_access": false,
+          "seed": 301,
+          "notes": "embodied: world+brain+social exposure"
+        },
+        "categories": {
+          "memory_retention": {
+            "skill_before": 0.1,
+            "skill_after_training": 0.205,
+            "skill_after_delay": 0.2779,
+            "retention_delta": 0.1779,
+            "status": "MEASURED"
+          },
+          "transfer": {
+            "forage_gain": 0.105,
+            "avoid_gain": 0.0,
+            "status": "MEASURED"
+          },
+          "novel_task_adaptation": {
+            "episodes_survived": 30,
+            "living_fraction": 0.75,
+            "status": "MEASURED"
+          },
+          "social_learning": {
+            "teaching_sessions": 27,
+            "taught_skill_delta": 0.1736,
+            "status": "MEASURED"
+          },
+          "communication": {
+            "grounded_vocab_total": 12,
+            "status": "MEASURED"
+          },
+          "learning_efficiency": {
+            "skill_per_tick": 0.002624,
+            "structural_expansions": 3,
+            "status": "MEASURED"
+          }
+        },
+        "population_hash": "e1bb9a08876809b17c6a90c973c812db90e0c5ca2d2af4e4dc42e6e6de0b3851"
+      },
+      {
+        "arm": "llm_only",
+        "status": "MEASURED",
+        "budget": {
+          "compute_ticks": 0,
+          "training_exposure_ticks": 0,
+          "information_budget_chars": 248,
+          "tool_access": false,
+          "seed": 301,
+          "notes": "static QA; zero embodied exposure"
+        },
+        "categories": {
+          "memory_retention": {
+            "status": "NOT_APPLICABLE",
+            "reason": "no embodiment/world exposure"
+          },
+          "transfer": {
+            "status": "NOT_APPLICABLE",
+            "reason": "no embodiment/world exposure"
+          },
+          "novel_task_adaptation": {
+            "status": "NOT_APPLICABLE",
+            "reason": "no embodiment/world exposure"
+          },
+          "social_learning": {
+            "status": "NOT_APPLICABLE",
+            "reason": "no embodiment/world exposure"
+          },
+          "communication": {
+            "status": "NOT_APPLICABLE",
+            "reason": "no embodiment/world exposure"
+          },
+          "learning_efficiency": {
+            "status": "NOT_APPLICABLE",
+            "reason": "no embodiment/world exposure"
+          }
+        },
+        "text_stats": {
+          "gen_sec": 4.286,
+          "chars": 248
+        },
+        "model": {
+          "filename": "MiniCPM5-2B-Q8_0.gguf",
+          "sha256": "c5415f8989bf88a8288f1b55a3cc371af53c07b0faa220a63bd7a990cfaba078"
+        }
+      },
+      {
+        "arm": "llm_tools",
+        "status": "SKIP",
+        "reason": "ImportError: cannot import name 'build_toolset' from 'src.llm.scientist' (C:\\Users\\hcsme\\Desktop\\FlyBain LLM Evolve\\src\\llm\\scientist.py)"
+      }
+    ]
+  },
+  "provenance_layers": {
+    "world_state": "4d57edfe61efa39decc41d3214a1c88663f351403870331b263ee2eee0985763",
+    "population": "747d364f5fd2afc0390f3c7211bdcc4a4f1848526b1ed4a337cc9b3cc02894c8",
+    "event_log": "da26505ee6372a7a4df3e06a9c913fe3a795701badd61f8279d9f39e6416aaeb"
+  },
+  "experiment_fingerprint": "4c01d573f74d2e7bf109abeed34b627a5c286ddece11953caad0d7d468fe8e37",
+  "elapsed_sec": 10.07
+}

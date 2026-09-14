@@ -1,10 +1,10 @@
 {
-  "timestamp": 1789423380.0130923,
+  "timestamp": 1789430125.3910635,
   "overall_status": "PASSED",
-  "total_categories": 32,
-  "passed": 32,
+  "total_categories": 44,
+  "passed": 43,
   "failed": 0,
-  "skipped": 0,
+  "skipped": 1,
   "categories": {
     "repository_cleanliness": {
       "status": "PASS",
@@ -64,7 +64,7 @@
     },
     "local_model_degradation_honesty": {
       "status": "PASS",
-      "reason": "System honestly declared cognitive status: OPERATIONAL"
+      "reason": "System honestly declared cognitive status: MODEL_UNAVAILABLE"
     },
     "continuous_learning_weight_change": {
       "status": "PASS",
@@ -84,7 +84,7 @@
     },
     "alife_branch_replay_determinism": {
       "status": "PASS",
-      "reason": "Population snapshot branch replay produced identical hash (bcdfaf998362182a)."
+      "reason": "Population snapshot branch replay produced identical hash (52f731d079a83912)."
     },
     "developmental_structural_integrity": {
       "status": "PASS",
@@ -127,12 +127,60 @@
       "reason": "Checkpoint/resume final population hash equals uninterrupted run."
     },
     "llm_model_discovery_and_inference": {
-      "status": "PASS",
-      "reason": "Discovered 1 GGUF; inference=SUCCESS; model=MiniCPM5-2B-Q8_0.gguf."
+      "status": "SKIP",
+      "reason": "No local GGUF model discovered on this host; unavailable-model honesty is verified by llm_failure_mode_and_tool_safety."
     },
     "llm_failure_mode_and_tool_safety": {
       "status": "PASS",
       "reason": "Unavailable model returns structured error (no fake text); shell/unknown tools rejected."
+    },
+    "living_brain_identity": {
+      "status": "PASS",
+      "reason": "Persistent identities + EMERGENT provenance; growth 32->33."
+    },
+    "structural_growth_resource_constrained": {
+      "status": "PASS",
+      "reason": "Zero growth budget blocks neurogenesis (energy is the constraint)."
+    },
+    "eligibility_neuromodulation": {
+      "status": "PASS",
+      "reason": "v2 traces + novelty-driven neuromodulation change weights (reward=0)."
+    },
+    "autonomy_self_generated_goals": {
+      "status": "PASS",
+      "reason": "All living organisms self-generate goals; no human task commands."
+    },
+    "grounded_language_and_social": {
+      "status": "PASS",
+      "reason": "Symbols bind to grounded concepts; trust emerges from outcomes."
+    },
+    "genome_v2_architecture_genes": {
+      "status": "PASS",
+      "reason": "v2 encodes learning architecture; v1 legacy remains valid."
+    },
+    "speciation_evidence": {
+      "status": "PASS",
+      "reason": "Divergence recorded only with measured genome distance."
+    },
+    "llm_control_plane_safety": {
+      "status": "PASS",
+      "reason": "Invalid/shell commands rejected; valid typed commands execute."
+    },
+    "research_memory_chain": {
+      "status": "PASS",
+      "reason": "Hash-chained append-only research memory; tamper-evident."
+    },
+    "deeptime_escalation_replay": {
+      "status": "PASS",
+      "reason": "Coarse deep-time escalates to full-res checkpoint; replay hash-verified."
+    },
+    "milestone_evidence": {
+      "status": "PASS",
+      "reason": "Detected ['STRUCTURAL_EXPANSION', 'OVERLAPPING_GENERATIONS'] with evidence + certificate."
+    },
+    "benchmark_fairness": {
+      "status": "PASS",
+      "reason": "Per-arm budgets documented; LLM arms SKIP with reason when unmet."
     }
   }
 }

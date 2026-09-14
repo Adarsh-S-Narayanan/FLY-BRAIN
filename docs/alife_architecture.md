@@ -1,64 +1,78 @@
-# FlyBrain Artificial-Life Layer — Implementation Status (2026-09-14)
+# FlyBrain Artificial-Life Layer — Implementation Status (2026-09-15)
 
 > Scientific positioning: FlyBrain is a **biologically grounded artificial-life research
 > framework**, not a literal brain model. Research question: *What structures and behaviors
 > emerge when a biologically grounded neural substrate develops, learns, socializes,
 > transmits knowledge, reproduces, mutates, and evolves across overlapping generations?*
 
-## IMPLEMENTED + VERIFIED (`tests/test_alife.py` 12/12; full suite 111 passing; matrix gates 20–32)
+## IMPLEMENTED + VERIFIED (matrix gates 20–44; full suite 200+ tests)
 
 | Layer | Module | Evidence |
 |---|---|---|
 | Deterministic identity/seeds | `src/common/determinism.py` | stable SHA-256 IDs, derived subseeds |
 | Event sourcing (26 types) | `src/common/events.py` | hash-chained, JSONL serializable |
-| State hashing | `src/common/hashing.py` | array/dict hashes |
 | Layered provenance hashing | `src/common/provenance.py` | dataset/model/graph/brain/world/organism/population/event layers folded into experiment fingerprint |
+| **LivingBrain v1** | `src/brain/living.py` | persistent identities, provenance classes (BIOLOGICAL/DERIVED/EMERGENT/EVOLVED/SYNTHETIC), structural events, resource-constrained growth; `tests/test_living_brain.py` |
+| **v2 eligibility + neuromodulation** | `src/brain/eligibility.py` | persistent traces, versioned signal (reward/novelty/prediction-error/social/goal); `tests/test_eligibility.py` |
+| **Autonomy engine** | `src/autonomy/engine.py` | self-generated goals, compositional continuous actions, self-evaluation; `tests/test_autonomy.py` |
+| **Embodiment** | `src/embodiment/body.py` | damage/speed-capacity/recovery constraints |
+| **Grounded language** | `src/language/grounded.py` | symbol↔concept↔sensory grounding, production from internal state; `tests/test_language_social.py` |
+| **Emergent social model** | `src/social/model.py` | trust from interaction outcomes, persistent relationships |
+| **Genome v2.0** | `src/genome/schema.py` | 9 learning-architecture genes; v1 exact-compat; `tests/test_genome_v2_speciation.py` |
+| **Speciation** | `src/evolution/speciation.py` | genome-distance clustering, evidence-backed divergence |
+| **LLM control plane** | `src/llm/control.py` | 14 typed schema-validated commands, injection-rejecting; `tests/test_control_plane.py` |
+| **Research memory** | `src/llm/research_memory.py` | hash-chained append-only, tamper-evident |
+| **Deep time** | `src/timeline/deeptime.py` | coarse acceleration + milestone escalation + hash-verified replay; `tests/test_deeptime_milestones.py` |
+| **Milestone detection** | `src/science/milestones.py` | evidence-backed milestones + certificates |
+| **Benchmark suite** | `src/research/benchmark.py` | FlyBrain vs LLM-only vs LLM+tools, budgets documented; `tests/test_benchmark.py` |
 | Genome v1.0 (15 params) | `src/genome/schema.py` | validate/hash/serialize, bounds-checked |
-| Mutation + crossover | `src/genome/operators.py` | deterministic, full provenance records |
-| Development (birth/diff/migrate/grow/synaptogenesis/prune/apoptosis) | `src/development/engine.py` | graph invariants enforced after every op |
-| Grid world + sensors/actuators | `src/world/environment.py` | grazing, hazards, regrowth w/ tracked influx; config in snapshots |
-| Organism + lifecycle + metabolism | `src/organism/organism.py` | stages, energy books, sleep/dream replay; maps+drives in snapshots |
-| Population + overlapping generations | `src/population/population.py` | coexistence, Pareto selection, lineage; branch-replay tested |
+| Mutation + crossover | `src/genome/operators.py` | deterministic, full provenance records, version-preserving |
+| Development lifecycle | `src/development/engine.py` | graph invariants enforced after every op |
+| Grid world + sensors/actuators | `src/world/environment.py` | grazing, hazards, regrowth w/ tracked influx |
+| Organism + lifecycle + metabolism | `src/organism/organism.py` | legacy + autonomy modes, living-brain wiring, sleep gene |
+| Population + overlapping generations | `src/population/population.py` | coexistence, teaching with emergent-trust bias (v2 only) |
 | Teaching + cultural transmission | `src/culture/transmission.py` | gain measured, provenance chains |
-| Scripted teacher protocol | `src/agents/protocols.py` | acts only via cultural channel |
-| Local GGUF model discovery | `src/llm/discovery.py` | discovers local `llm/gguf/*.gguf`; architecture/hash provenance |
-| Local LLM scientist loop | `src/llm/runtime.py`, `src/llm/scientist.py`, `src/llm/tools.py` | hypothesis generation + tool-calling with safety rejects; unavailable models never emit text |
 | Canonical experiment + verify | `scripts/run_alife_experiment.py` | bit-exact replay (hash match) |
-| Long-run campaign + checkpoint/resume | `scripts/run_long_campaign.py` | multi-generation resume proven equal to uninterrupted run (`tests/test_campaign.py`) |
-| Performance benchmarks (provenance) | `scripts/run_benchmarks.py` | timestamped never-overwritten CPU/Vulkan/LLM reports in `diagnostics/benchmarks/` |
-| Adversarial robustness | `tests/test_adversarial.py` | invalid graphs, stale/corrupt caches, genome bounds, death races |
-| Colony UI API | `src/ui/server.py` (`/api/colony*`, `/api/status`, `/api/llm/*`) | serves real live state, tested |
+| Milestone evidence capture | `scripts/capture_milestone_evidence.py` | real run → milestones + escalation + replay verification |
+| Colony UI API | `src/ui/server.py` | serves real live state, tested |
 
-Canonical result (`seed 7, pop 6, 60 ticks`): 7 living, 4 births, 2 deaths,
-generations `[0, 1]` coexisting, 12 teaching sessions, deterministic replay hash
-match `True` (`70a5e4b29e06c320`).
+Canonical result (`seed 7, pop 6, 60 ticks`, legacy v1 path): 8 living, 2 births,
+0 deaths, generations `[0, 1]` coexisting, 0 teaching sessions in this short run
+(teaching gain separately verified), replay hash match `True` (`c2da7f2ae763d56c`).
+
+Autonomous v2 evidence run (`scripts/capture_milestone_evidence.py`, seed 301):
+coarse deep-time campaign with self-generated goals, emergent communication,
+structural expansion, milestone certificates, checkpoint escalation with
+hash-verified replay (`diagnostics/milestones/milestone_evidence.json`).
 
 ## EXPERIMENTAL
 
 - Population simulation runs on **CPU** (single-brain Vulkan path is verified with
   trajectory parity, but batched multi-organism GPU stepping is not implemented).
 - Dream consolidation is replay-based; no synaptic downscaling model yet.
-- CPU/Vulkan integration is trajectory-parity, not bit-exact (documented in README).
-- Local LLM outputs are generated by a 2B-class quantization locally and are
-  scientifically weak; the scientist loop always treats them as hypotheses, never ground truth.
-- Long runs beyond the canonical 60-tick campaign are now checkpointable but not
-  statistically evaluated at scale.
+- CPU/Vulkan integration is trajectory-parity, not bit-exact (see
+  `diagnostics/verification_contract.json` — terms are normative).
+- Deep-time coarse mode aggregates lifecycle events; NOT neural-resolution-equivalent.
+- Local LLM outputs are 2B-class and scientifically weak; always hypotheses.
 
 ## NOT IMPLEMENTED (explicitly unavailable, never faked)
 
 - 3D colony / development-timeline UI panels (data APIs exist; visualization pending).
 - Multi-GPU batched organism stepping.
 - Synaptic downscaling / homeostatic sleep consolidation models.
+- World events beyond resources/hazards (day/night, sound, terrain).
 
 ## Key model parameters (documented, not hidden)
 
 - Metabolism: `cost = rate*(0.5 + activity + 0.25*move)`; growth `0.02` energy/neuron;
   grazing radius 1, assimilation `0.8`; reproduction cost `0.25` energy/parent.
-- Ecology: resources scale `max(12, 4*pop)`, regrowth every 3 ticks (+0.4–0.8, tracked
-  in `energy_injected`); energy invariant tested as
-  `total <= initial + injected`.
-- Plasticity inside organism brains never fires in current runs (reward passed as 0.0);
-  organism learning is behavioral (foraging/social skills) + cultural.
+- Autonomy-mode growth: `budget = clip((energy-0.4)*5*(0.5+growth_budget_fraction), 0, 4)`
+  per development cycle — poor organisms cannot grow (resource-constrained).
+- Genome v2 architecture genes (evolvable): `eligibility_decay`,
+  `neuromod_novelty_weight`, `neuromod_prediction_weight`, `growth_budget_fraction`,
+  `prediction_gain`, `social_learning_bias`, `sleep_duration`,
+  `communication_tendency`, `curiosity_drive`.
+- v1 organisms keep the exact legacy path (bit-exact with pre-v2 replays).
 
 ## Acceptance matrix (32/32 PASS, last run)
 

@@ -1,0 +1,72 @@
+{
+  "contract_version": "1.0",
+  "purpose": "Authoritative machine-readable source for verification-level terminology. All documentation must conform. Terms are NEVER interchangeable.",
+  "levels": {
+    "SPIKE_EXACT": {
+      "definition": "Spike outputs (binary spike trains) are exactly equal between two implementations or runs for all compared steps.",
+      "allows_floating_point_drift": true,
+      "measured_evidence": [
+        {
+          "claim": "CPU reference vs Vulkan GPU LIF: spike trains identical across 9 parity test cases and 12-step plasticity trajectories.",
+          "source": "diagnostics/cpu_gpu_validation_report.json",
+          "test": "tests/test_parity.py"
+        }
+      ]
+    },
+    "NUMERICALLY_EQUIVALENT": {
+      "definition": "Floating-point state (e.g. membrane potentials, weights) agrees within documented tolerances, without requiring byte equality.",
+      "tolerances": {
+        "cpu_vs_vulkan_potentials": 1e-4,
+        "cpu_vs_vulkan_weights": 2e-8
+      },
+      "measured_evidence": [
+        {
+          "claim": "CPU vs Vulkan trajectory parity: max abs potential diff < 1e-4, max abs weight diff < 2e-8.",
+          "source": "diagnostics/cpu_gpu_validation_report.json",
+          "test": "tests/test_parity.py"
+        }
+      ]
+    },
+    "BIT_EXACT": {
+      "definition": "Serialized state bytes AND the SHA-256 state hash are identical between two runs from identical initial conditions and seeds.",
+      "applies_to": [
+        "deterministic experiment replication (CPU path): identical final_state_hash across independent runs",
+        "ALife replay: population_hash match on verify",
+        "checkpoint continuation: uninterrupted run vs snapshot->restore->continue"
+      ],
+      "measured_evidence": [
+        {
+          "claim": "CPU deterministic experiments replicate with identical 256-bit state hashes.",
+          "source": "diagnostics/experiments/",
+          "test": "acceptance gate deterministic_experiment_replication"
+        },
+        {
+          "claim": "ALife canonical run replays bit-exact (population hash match).",
+          "source": "diagnostics/alife_experiments/alife_p6_t60_s7.json",
+          "test": "tests/test_alife.py"
+        }
+      ]
+    }
+  },
+  "forbidden_usage": [
+    "Describing CPU/Vulkan floating-point agreement as 'bit-exact' — it is NUMERICALLY_EQUIVALENT + SPIKE_EXACT.",
+    "Describing tolerance-based parity as exact.",
+    "Describing deterministic CPU replay as NUMERICALLY_EQUIVALENT — it is BIT_EXACT."
+  ],
+  "environment_profiles": {
+    "workstation": {
+      "description": "Vulkan device + local GGUF model present",
+      "acceptance_matrix": "32/32 PASS, 0 skipped"
+    },
+    "cloud_ci": {
+      "description": "No GPU device, no GGUF weights (model binaries gitignored)",
+      "acceptance_matrix": "28 PASS / 4 SKIP / 0 FAIL -> PASSED",
+      "skipped_gates": [
+        "vulkan_discovery_and_selection",
+        "persistent_resource_lifecycle",
+        "cpu_vulkan_numerical_parity",
+        "llm_model_discovery_and_inference"
+      ]
+    }
+  }
+}

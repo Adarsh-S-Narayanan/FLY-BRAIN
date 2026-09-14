@@ -1,0 +1,108 @@
+{
+  "audit_version": "1.0",
+  "date": "2026-09-15",
+  "current_version": "v2.0.0",
+  "current_commit": "aa5065c",
+  "purpose": "Machine-readable audit driving the autonomous evolution mission (STAGE A). Evidence-based inventory of implemented vs reserved vs missing capabilities.",
+  "modules": {
+    "connectome": {
+      "files": ["src/connectome/loader.py", "src/connectome/types.py"],
+      "status": "IMPLEMENTED",
+      "notes": "3 GraphModes with strict provenance separation; CSR v3 incoming-row convention; cache version-guarded + provenance persisted; graph_hash over topology+quantized weights; validate_invariants enforced."
+    },
+    "brain_runtime": {
+      "files": ["src/brain/runtime.py", "src/brain/state.py", "src/brain/plasticity.py"],
+      "status": "IMPLEMENTED",
+      "notes": "LIF step (GPU/CPU), 8 sensorimotor index populations, activations EMA, prediction_error scalar + predicted_reward EMA, homeostatic drives, 3-factor Hebbian plasticity gated on |reward|>1e-4, motor readout argmax over 4 tool associations, snapshot/restore."
+    },
+    "development": {
+      "files": ["src/development/engine.py"],
+      "status": "IMPLEMENTED",
+      "notes": "neurogenesis/differentiate/migrate/grow_projections/prune/apoptosis all real graph mutations with CSR rebuild + hash recompute; deterministic per (seed,tick); consumes genome params neurogenesis_rate, differentiation_bias, migration_rate, synaptogenesis_rate, pruning_threshold, developmental_timing."
+    },
+    "organism": {
+      "files": ["src/organism/organism.py"],
+      "status": "IMPLEMENTED",
+      "notes": "Closed loop: sense->brain->act->world->reward->plasticity(next tick); metabolism; structural development cycle every 5 ticks (neurogenesis costs energy); sleep replay; episodic+semantic memory; fitness vector; snapshot/restore incl. sensorimotor maps."
+    },
+    "population": {
+      "files": ["src/population/population.py"],
+      "status": "IMPLEMENTED",
+      "notes": "Overlapping generations, sexual/asexual reproduction with deterministic crossover, eligible-parent filter, teaching by distance/stage; select_parents_pareto IMPLEMENTED BUT NOT CALLED (reserved)."
+    },
+    "culture": {
+      "files": ["src/culture/transmission.py"],
+      "status": "IMPLEMENTED",
+      "notes": "teach() transfers skill value + provenance chain; Knowledge dataclass DEFINED BUT NEVER INSTANTIATED (reserved)."
+    },
+    "genome": {
+      "files": ["src/genome/schema.py", "src/genome/operators.py"],
+      "status": "IMPLEMENTED",
+      "notes": "15 params v1.0, bounds-checked, deterministic mutation/crossover with provenance. UNCONSUMED params: axon_growth_rate, dendrite_growth_rate, sociality, reproduction_threshold."
+    },
+    "llm": {
+      "files": ["src/llm/discovery.py", "src/llm/runtime.py", "src/llm/scientist.py", "src/llm/tools.py"],
+      "status": "IMPLEMENTED",
+      "notes": "GGUF discovery with KV parsing; never fabricates text; 5 registered tools; request-level safety rejection; run_iteration with claim grounding."
+    },
+    "events": {
+      "files": ["src/common/events.py"],
+      "status": "IMPLEMENTED",
+      "notes": "28 VALID_EVENTS, hash-chained. NEVER EMITTED (reserved): DENDRITE_GROWN, SYNAPSE_STRENGTHENED, SYNAPSE_WEAKENED, MEMORY_RECALLED, GENERATION_ENDED, SNAPSHOT_SAVED."
+    },
+    "provenance": {
+      "files": ["src/common/provenance.py"],
+      "status": "IMPLEMENTED",
+      "notes": "Layered hashes: dataset/model/graph/brain_state/world_state/organism/population/event_log -> experiment_fingerprint."
+    },
+    "memory": {
+      "files": ["src/memory/persistence.py", "src/memory/working.py"],
+      "status": "IMPLEMENTED",
+      "notes": "SQLite episodic/semantic/skill/dream/experiment stores + RAM working memory. NOTE: Organism keeps its own episodes/semantic dicts and does NOT use PersistentMemoryManager."
+    },
+    "world": {
+      "files": ["src/world/environment.py"],
+      "status": "IMPLEMENTED",
+      "notes": "Toroidal grid, resources/hazards/regrow with tracked energy_injected, sense/apply_move/consume, world_hash, snapshot/restore."
+    }
+  },
+  "gaps_blocking_mission": [
+    "No LivingBrain versioned model: neuron/synapse identities are array indices (reused after apoptosis strips edges but ids grow monotonically); no per-neuron/per-synapse provenance classes (BIOLOGICAL/DERIVED/EMERGENT/EVOLVED/SYNTHETIC); no persistent structural event log tied to brain state.",
+    "No eligibility traces or composite neuromodulatory signal; plasticity driven by scalar reward only.",
+    "Prediction is a scalar EMA; does not influence attention, curiosity, memory priority, or exploration.",
+    "No autonomy engine: active_goal is a static string 'explore'; movement is run-and-tumble chemotaxis heuristic, not brain-state-driven compositional control.",
+    "No grounded language module; no symbol<->concept<->sensory grounding; no organism-produced symbol sequences.",
+    "No social model: no identity recognition, interaction history, trust, or relationship persistence between organisms.",
+    "No speciation evidence; no genome-distance divergence tracking.",
+    "No deep-time/event-driven acceleration mode.",
+    "No milestone detection or automatic scientific capture.",
+    "No LLM control plane with typed commands (SPAWN_POPULATION, START_RUN, ...) and research memory database.",
+    "No benchmark suite comparing LLM-only vs LLM+tools vs FlyBrain.",
+    "Genome cannot encode learning-architecture parameters (eligibility decay, neuromodulation weights, growth budget allocation).",
+    "Brain size CAN exceed biological seed (neurogenesis works) but expansions are not labeled with provenance classes and not tracked across generations.",
+    "Organism dead-neuron silence invariant block is an empty pass (line ~92).",
+    "teaching_sessions and EventLog are NOT persisted in Population.restore."
+  ],
+  "compatibility_risks": [
+    "Genome.validate() pins version '1.0' — adding architecture params requires either same-version extension or a deliberate version bump with from_v1 migration.",
+    "Organism.snapshot/restore format is consumed by Population snapshot and campaign checkpoints — any new state must be additive with defaults to keep old checkpoints readable.",
+    "BrainRuntime plasticity mutates graph.weights in place — eligibility extension must keep this behavior in compatibility mode.",
+    "Acceptance matrix gate 30 (checkpoint_continuation) requires snapshot->restore->continue == uninterrupted; any new organism state must be fully included in snapshots.",
+    "EventLog.log raises on unknown types — new event types must be added to VALID_EVENTS atomically with emitters."
+  ],
+  "documentation_drift": [
+    "README/final report previously used 'bit-exact' loosely for CPU/Vulkan parity; corrected in v2.0.0 to 'trajectory parity, spike-exact' — verification_contract.json now makes this normative.",
+    "README matrix table says 32/32 PASS on workstation but CI profile is 28 PASS / 4 SKIP — documented, but verification levels need a machine-readable source of truth."
+  ],
+  "performance_bottlenecks": [
+    "cpu_lif_step is a Python loop over N neurons per step (fine for <=1k, bottleneck beyond ~10k).",
+    "Organism structural development cycle rebuilds CSR via Python dicts every 5 ticks.",
+    "Vulkan path does readback every step (correctness-first); no no-readback fast mode yet.",
+    "Population step is sequential per organism; no batching."
+  ],
+  "dangerous_assumptions": [
+    "Organism brain state arrays are resized by _sync_brain_to_graph after growth — assumes indices beyond original N stay aligned with graph arrays; LivingBrain must formalize this.",
+    "organism_hash omits weights/refractory/activations — two organisms with identical potentials/spikes but different weights hash equal; acceptable for identity but must not be used as full-state proof.",
+    "World positions dict keyed by organism_id persists after death (harmless but leaks)."
+  ]
+}
