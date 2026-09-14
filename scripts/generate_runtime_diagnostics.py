@@ -78,7 +78,6 @@ def main():
             "interactive_ui": "VERIFIED"
         }
     }
-    vk_engine.cleanup()
 
     out_path = "diagnostics/runtime_diagnostics.json"
     with open(out_path, "w", encoding="utf-8") as f:
