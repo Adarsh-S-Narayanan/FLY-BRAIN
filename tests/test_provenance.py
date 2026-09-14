@@ -24,13 +24,14 @@ def load_bio_pairs():
 
 
 def graph_bio_edges(g):
-    """CSR edges as (pre_body_id, post_body_id) with proper index mapping."""
+    """CSR edges as (pre_body_id, post_body_id) with proper index mapping.
+    CSR CONVENTION v3: row i = INCOMING sources, so edge = (col, row)."""
     body = [int(x) for x in g.neuron_ids]
     out = set()
     for i in range(g.num_neurons):
         s, e = int(g.row_offsets[i]), int(g.row_offsets[i + 1])
         for k in range(s, e):
-            out.add((body[i], body[int(g.col_indices[k])]))
+            out.add((body[int(g.col_indices[k])], body[i]))
     return out
 
 
@@ -91,6 +92,28 @@ class TestProvenanceIntegrity(unittest.TestCase):
         self.assertEqual(a.graph_hash, b.graph_hash)
         self.assertEqual(b.mode, GraphMode.REAL)
         self.assertIn("mode", b.provenance_metadata)
+
+    def test_edge_annotations_and_selection_metadata(self):
+        import numpy as np
+        from src.connectome.loader import build_real_connectome, load_raw_neurons
+        g = build_real_connectome(max_neurons=64, seed=42)
+        pm = g.provenance_metadata
+        self.assertEqual(pm["csr_convention"], "row_is_incoming")
+        self.assertEqual(pm["selection_strategy"], "REAL_HUB_SUBGRAPH")
+        self.assertIn("hub-biased", pm["sampling_bias"])
+        self.assertIn("weight_transform", pm)
+        self.assertIn("simulation_semantics", pm)
+        ea = pm["edge_annotations"]
+        self.assertEqual(ea["annotation_level"], "DERIVED")
+        self.assertEqual(sum(ea["neuropil_distribution"].values()), pm["empirical_edge_count"])
+        self.assertGreater(pm["edge_confidence_mean"], 0.0)
+        neurons = load_raw_neurons()
+        self.assertIn("cell_type", neurons[0].annotation_levels)
+        self.assertEqual(neurons[0].annotation_levels["cell_type"], "UNKNOWN")
+        self.assertEqual(neurons[0].annotation_levels["position"], "EMPIRICAL")
+        tails = np.array([n.tail_distance for n in neurons[:500]])
+        self.assertTrue(bool(np.all(np.isfinite(tails))))
+        self.assertGreater(float(np.max(tails)), 0.0)
 
     def test_population_metadata_cannot_pose_as_annotated(self):
         for mode, cache in ((GraphMode.REAL, "prov_test_real_128.npz"),

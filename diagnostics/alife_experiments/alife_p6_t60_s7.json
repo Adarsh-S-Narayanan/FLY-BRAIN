@@ -1,0 +1,139 @@
+{
+  "experiment": "canonical_alife_overlap",
+  "seed": 7,
+  "substrate": "real",
+  "population_start": 6,
+  "population_total": 8,
+  "ticks": 60,
+  "circuit_size": 32,
+  "graph_mode": "REAL",
+  "births": 2,
+  "deaths": 0,
+  "generations_present": [
+    0,
+    1
+  ],
+  "overlap_demonstrated": true,
+  "teaching_sessions": 0,
+  "genetic_lineage": {
+    "1608306d611d8ea9": [],
+    "4a2a7a8be5e301ed": [],
+    "e991719b1c0ae550": [],
+    "7ccb088ec804995e": [],
+    "26aabc78b7bd7249": [],
+    "fa64e8e1f984f54d": [],
+    "46e408118705bf64": [
+      "26aabc78b7bd7249",
+      "7ccb088ec804995e"
+    ],
+    "3cda6493a2bbefba": [
+      "e991719b1c0ae550",
+      "26aabc78b7bd7249"
+    ]
+  },
+  "cultural_lineage": {},
+  "curves": {
+    "tick": [
+      5,
+      10,
+      15,
+      20,
+      25,
+      30,
+      35,
+      40,
+      45,
+      50,
+      55,
+      60
+    ],
+    "living": [
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      8
+    ],
+    "mean_neurons": [
+      33.17,
+      34.83,
+      35.83,
+      37.0,
+      38.0,
+      39.17,
+      40.83,
+      42.33,
+      43.83,
+      44.83,
+      45.67,
+      43.0
+    ],
+    "mean_synapses": [
+      7.33,
+      7.33,
+      7.33,
+      6.83,
+      6.33,
+      6.33,
+      5.83,
+      5.17,
+      4.5,
+      3.83,
+      3.5,
+      9.88
+    ],
+    "mean_energy": [
+      1.052,
+      1.0291,
+      1.0899,
+      1.0045,
+      1.204,
+      1.1135,
+      1.0085,
+      0.8177,
+      0.6669,
+      0.6739,
+      0.5063,
+      0.4825
+    ],
+    "teaching_sessions": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "births_total": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2
+    ]
+  },
+  "population_hash": "583721155a23d2e1074dc8130b4dbe06d621c5b97377172b540e67dbe5146ad7",
+  "events_hash": "292fa45e98721b66b8a66e991e3c220cc4cf86d95e1d1b72c64850f9d3b68ce1",
+  "event_count": 69,
+  "elapsed_sec": 16.29
+}

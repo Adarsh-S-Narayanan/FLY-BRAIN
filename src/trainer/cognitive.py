@@ -52,6 +52,16 @@ class CognitiveTrainer:
     def __init__(self, model_path: str = GGUF_MODEL_PATH):
         self.model_path = model_path or ""
         self.host_python = HOST_PYTHON
+        self._llm = None  # lazy LocalLLM instance
+        if not self.model_path:
+            # Discover a locally present GGUF model (llm/); stays honest if none.
+            try:
+                from src.llm.discovery import discover_models
+                found = [m for m in discover_models() if m.status == "DISCOVERED"]
+                if found:
+                    self.model_path = found[0].path
+            except Exception:
+                pass
         self.model_available = bool(self.model_path) and os.path.exists(self.model_path) \
             and bool(self.host_python) and os.path.exists(self.host_python)
 
@@ -121,60 +131,48 @@ class CognitiveTrainer:
 
     def generate_curriculum_hypothesis(self, state_summary: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Queries the local Qwen3-4B GGUF model to generate pedagogical curriculum recommendations.
-        If model is unavailable, reports explicit MODEL_UNAVAILABLE status rather than faking inference.
+        Generates a pedagogical hypothesis with the local GGUF model when present.
+        Returns explicit MODEL_UNAVAILABLE / MODEL_LOAD_ERROR / INFERENCE_FAILED
+        structures otherwise — never faked text. Output is advisory only.
         """
         if not self.model_available:
             return {
                 "status": "MODEL_UNAVAILABLE",
-                "message": f"Local Qwen3-4B model weights not present at {self.model_path}",
+                "message": "No local GGUF model discovered (see llm/ discovery)",
                 "hypothesis": None
             }
-
-        prompt = (
-            f"You are a computational neuroscience teacher supervising an artificial organism. "
-            f"State: Step {state_summary.get('step_count', 0)}, "
-            f"Energy {state_summary.get('drives', {}).get('energy', 1.0):.2f}, "
-            f"Curiosity {state_summary.get('drives', {}).get('curiosity', 0.8):.2f}. "
-            f"Output one concise pedagogical hypothesis for the next connectome trial in under 30 words:"
-        )
-
-        script = f"""
-import llama_cpp
-import sys
-try:
-    llm = llama_cpp.Llama(model_path=r'{self.model_path}', n_ctx=256, verbose=False)
-    res = llm('''{prompt}''', max_tokens=40, stop=['\\n'])
-    print(res['choices'][0]['text'].strip())
-except Exception as e:
-    sys.stderr.write(str(e))
-    sys.exit(1)
-"""
         try:
-            proc = subprocess.run(
-                [self.host_python, "-c", script],
-                capture_output=True,
-                text=True,
-                timeout=25
+            from src.llm.runtime import LocalLLM, GenerationConfig
+            from src.llm.discovery import discover_models
+            if self._llm is None:
+                found = [m for m in discover_models()
+                         if m.status == "DISCOVERED" and m.path == self.model_path]
+                model = found[0] if found else None
+                if model is None:
+                    return {"status": "MODEL_LOAD_ERROR",
+                            "error": f"model not in discovery index: {self.model_path}",
+                            "hypothesis": None}
+                self._llm = LocalLLM(model, n_ctx=2048)
+                if not self._llm.load():
+                    return {"status": "MODEL_LOAD_ERROR", "error": self._llm.last_error,
+                            "hypothesis": None}
+            prompt = (
+                f"State: step {state_summary.get('step_count', 0)}, "
+                f"energy {state_summary.get('drives', {}).get('energy', 1.0):.2f}, "
+                f"curiosity {state_summary.get('drives', {}).get('curiosity', 0.8):.2f}. "
+                f"Propose one concise pedagogical hypothesis for the next trial (under 30 words):"
             )
-            if proc.returncode == 0 and proc.stdout.strip():
-                return {
-                    "status": "SUCCESS",
-                    "hypothesis": proc.stdout.strip(),
-                    "model": "Qwen3-4B-GGUF"
-                }
-            else:
-                return {
-                    "status": "INFERENCE_FAILED",
-                    "error": proc.stderr.strip() or "Empty inference output",
-                    "hypothesis": None
-                }
-        except Exception as e:
-            return {
-                "status": "TIMEOUT" if isinstance(e, subprocess.TimeoutExpired) else "ERROR",
-                "error": str(e),
-                "hypothesis": None
-            }
+            res = self._llm.generate(prompt, GenerationConfig(max_tokens=60, seed=42))
+            if res["status"] != "SUCCESS":
+                return {"status": "INFERENCE_FAILED", "error": res.get("error", ""),
+                        "hypothesis": None}
+            out = dict(res["provenance"])
+            out.update({"status": "SUCCESS", "hypothesis": (res["text"] or "").strip(),
+                        "advisory_only": True})
+            return out
+        except Exception as e:  # noqa: BLE001
+            return {"status": "MODEL_RUNTIME_ERROR", "error": f"{type(e).__name__}: {e}",
+                    "hypothesis": None}
 
     def propose_curriculum(self, current_difficulty: int) -> CurriculumProposal:
         """Constructs typed curriculum proposal with input validation."""

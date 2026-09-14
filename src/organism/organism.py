@@ -59,6 +59,7 @@ class Organism:
         self.position = tuple(start_pos)
         self.heading = (1, 0)      # persistent run direction (chemotaxis)
         self.last_food = 0.0       # previous food gradient (tumble trigger)
+        self._last_reward = 0.0    # previous tick outcome -> neural plasticity (P12)
         # own brain copy (CPU for determinism inside populations)
         oseed = int(self.seeds.get("organism_seed", 44))
         graph = get_or_create_circuit(circuit_size, mode=graph_mode, seed=oseed)
@@ -85,8 +86,9 @@ class Organism:
         vis = np.full(16, float(sense["food_gradient"]), dtype=np.float32)
         olf = np.full(8, float(sense["hazard_gradient"]), dtype=np.float32)
         mem = np.full(8, float(min(1.0, sense["nearby_organisms"] / 3.0)), dtype=np.float32)
+        # P12: the previous tick's outcome reward drives real neural plasticity.
         out = self.brain.step(sensory_inputs={"visual": vis, "olfactory": olf, "memory": mem},
-                              reward=0.0)
+                              reward=float(self._last_reward))
         # enforce dead-neuron silence invariant
         dead_idx = [i for i, a in enumerate(self.dev.alive) if not a]
         if dead_idx and len(self.brain.state.spikes) >= max(dead_idx, default=-1) + 1:
@@ -120,6 +122,8 @@ class Organism:
             self.health = max(0.0, self.health - 0.05)
             self.skills["avoid"] = min(1.0, self.skills["avoid"] + 0.01)
             reward -= 0.3
+        # P12: store outcome for next tick's neural plasticity (closed loop).
+        self._last_reward = float(reward)
         # metabolism: basal + neural activity + movement + growth
         activity = float(np.mean(self.brain.state.activations)) if len(self.brain.state.activations) else 0.0
         metab = float(self.genome.params.get("metabolism_rate", 0.01))
@@ -252,6 +256,7 @@ class Organism:
             "energy": self.energy, "health": self.health, "alive": self.alive,
             "tick": self.tick, "position": list(self.position),
             "heading": list(self.heading), "last_food": self.last_food,
+            "last_reward": self._last_reward,
             "genome": self.genome.to_dict(),            "graph": {"neuron_ids": self.graph.neuron_ids.tolist(),
                       "coordinates": self.graph.coordinates.tolist(),
                       "tbars": self.graph.tbars.tolist(), "sides": list(self.graph.sides),
@@ -310,6 +315,7 @@ class Organism:
         org.energy, org.health, org.alive = snap["energy"], snap["health"], snap["alive"]
         org.tick = snap["tick"]; org.position = tuple(snap["position"])
         org.heading = tuple(snap.get("heading", (1, 0))); org.last_food = float(snap.get("last_food", 0.0))
+        org._last_reward = float(snap.get("last_reward", 0.0))
         org.stage = stage_for_age(org.age) if org.alive else LifeStage.DEAD
         org.graph = graph
         org.brain = BrainRuntime(graph, use_gpu=False, seed=int(org.seeds.get("organism_seed", 44)))

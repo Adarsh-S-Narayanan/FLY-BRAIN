@@ -18,6 +18,14 @@ class ProvenanceStatus(str, Enum):
     PLANNED = "PLANNED"
     UNAVAILABLE = "UNAVAILABLE"
 
+class AnnotationLevel(str, Enum):
+    """Per-metadata annotation provenance vocabulary (P7)."""
+    EMPIRICAL = "EMPIRICAL"    # directly measured in the MaleCNS tables
+    DERIVED = "DERIVED"        # computed from empirical fields (no new claims)
+    HEURISTIC = "HEURISTIC"    # coordinate/rule guess, explicitly uncertain
+    SURROGATE = "SURROGATE"    # synthetic stand-in, never biological
+    UNKNOWN = "UNKNOWN"        # not available locally (e.g. cell type, hemilineage, NT)
+
 @dataclass
 class NeuronMetadata:
     body_id: int
@@ -29,6 +37,21 @@ class NeuronMetadata:
     tbars: int
     body_size: int
     region: str = "cns"
+    # DERIVED morphology from the soma table (soma->tail stub length).
+    tail_x: float = 0.0
+    tail_y: float = 0.0
+    tail_z: float = 0.0
+    tail_distance: float = 0.0
+    annotation_levels: Dict[str, str] = field(default_factory=lambda: {
+        "position": AnnotationLevel.EMPIRICAL.value,
+        "side": AnnotationLevel.EMPIRICAL.value,
+        "tbars": AnnotationLevel.EMPIRICAL.value,
+        "body_size": AnnotationLevel.EMPIRICAL.value,
+        "tail_distance": AnnotationLevel.DERIVED.value,
+        "cell_type": AnnotationLevel.UNKNOWN.value,
+        "hemilineage": AnnotationLevel.UNKNOWN.value,
+        "neurotransmitter": AnnotationLevel.UNKNOWN.value,
+    })
 
 @dataclass
 class PopulationMetadata:
@@ -63,6 +86,7 @@ class PopulationMetadata:
             "classification_method": self.classification_method,
             "biological_source": self.biological_source,
             "annotation_status": self.annotation_status,
+            "annotation_level": AnnotationLevel.HEURISTIC.value,
             "heuristic": self.heuristic,
             "neuron_indices": self.neuron_indices.tolist()
         }

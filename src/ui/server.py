@@ -413,3 +413,88 @@ def list_alife_experiments():
             except Exception:
                 pass
     return out
+
+
+# ---------------- Local GGUF LLM endpoints (REAL runtime state) ----------------
+
+LLM_RUNTIME = None
+
+
+def get_llm():
+    """Lazy local GGUF runtime. Never fabricates availability."""
+    global LLM_RUNTIME
+    if LLM_RUNTIME is None:
+        from src.llm.runtime import LocalLLM
+        LLM_RUNTIME = LocalLLM.auto(n_ctx=2048)
+        LLM_RUNTIME.load()
+    return LLM_RUNTIME
+
+
+@app.get("/api/llm/status")
+def get_llm_status():
+    """Reports discovered models and honest runtime status (no fake 'ready')."""
+    from src.llm.discovery import discover_models
+    models = discover_models()
+    llm = get_llm()
+    return {
+        "runtime_status": llm.status,
+        "last_error": llm.last_error,
+        "runtime": "llama-cpp-python",
+        "active_model": llm.model.to_dict() if llm.model else None,
+        "discovered": [m.to_dict() for m in models],
+    }
+
+
+class LLMGenerateRequest(BaseModel):
+    prompt: str
+    mode: str = "RESEARCH_DETERMINISTIC"
+    max_tokens: int = 128
+    seed: int = 42
+    temperature: float = 0.0
+
+
+@app.post("/api/llm/generate")
+def post_llm_generate(req: LLMGenerateRequest):
+    from src.llm.runtime import GenerationConfig
+    llm = get_llm()
+    cfg = GenerationConfig(mode=req.mode, max_tokens=max(1, min(req.max_tokens, 512)),
+                           seed=req.seed, temperature=req.temperature)
+    return llm.generate(req.prompt, cfg)
+
+
+@app.get("/api/llm/tools")
+def get_llm_tools():
+    from src.llm.tools import build_toolset
+    tools = build_toolset(get_engine=get_engine, get_colony=get_colony,
+                          memory=get_engine().memory)
+    return {name: {"description": t.description, "params_schema": t.params_schema}
+            for name, t in tools.items()}
+
+
+class LLMToolRequest(BaseModel):
+    tool: str
+    params: Dict[str, Any] = {}
+
+
+@app.post("/api/llm/tool")
+def post_llm_tool(req: LLMToolRequest):
+    """Validated, logged tool execution. Rejects anything outside the whitelist."""
+    from src.llm.scientist import ScientistLoop
+    from src.llm.tools import build_toolset
+    llm = get_llm()
+    loop = ScientistLoop(llm)
+    for name, spec in build_toolset(get_engine=get_engine, get_colony=get_colony,
+                                    memory=get_engine().memory).items():
+        loop.register(spec)
+    result = loop.execute_tool_request({"tool": req.tool, "params": req.params})
+    # Auditable, non-authoritative: tool output is data, LLM text is not.
+    try:
+        import time as _t
+        log_dir = "diagnostics/llm_agent"
+        os.makedirs(log_dir, exist_ok=True)
+        with open(os.path.join(log_dir, "tool_calls.jsonl"), "a", encoding="utf-8") as fp:
+            fp.write(json.dumps({"ts": _t.time(), "tool": req.tool, "params": req.params,
+                                 "status": result["status"]}, sort_keys=True) + "\n")
+    except Exception:
+        pass
+    return result

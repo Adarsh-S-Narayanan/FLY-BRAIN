@@ -9,6 +9,8 @@ diagnostics/snapshots/
 *.db-journal
 *.npz
 *.log
+# Local model weights are provided separately; never commit binaries.
+llm/gguf/*.gguf
 # Test-run artifacts (regenerated on every suite run, never committed)
 diagnostics/test_*
 diagnostics/*reverify*

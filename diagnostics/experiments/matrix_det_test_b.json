@@ -1,6 +1,6 @@
 {
   "experiment_id": "matrix_det_test_b",
-  "timestamp": 1789412195.025727,
+  "timestamp": 1789421156.846991,
   "seed": 1337,
   "graph_mode": "REAL",
   "neuron_scale": 128,
@@ -9,25 +9,36 @@
   "soma_file_hash": "6c1c415ab748ab1cc65c9a274885cfadc880a88eabb17915afe643c105bac84d",
   "connections_file_hash": "039e929b4ccc776f13a8d17eb9833d85de9454b8f43a0a0de34fdabb7ca2a668",
   "brain_shader_hash": "85427c36a5de1f638280fcffcd7295c864d8f78fee01fd5990fe26afaa9a3b65",
-  "plasticity_shader_hash": "9653708b6d75e07d1ec6d6fe4030c228d3003ca2d95f68fdcd95bb8a04bd47c1",
-  "git_commit": "fb70f3b0f1d1d16bebd1d6a8caedfee4d9b2c689",
+  "plasticity_shader_hash": "5321dd5fc6985d93d302f4cc6fc0e80a4b04f5ca022cbb7a7b18ef3b448ef17c",
+  "git_commit": "bab9c09b63951828228ad7a0d38c290f330c64d0",
   "hardware_device": "AMD Radeon(TM) Graphics",
   "backend": "vulkan_gpu",
-  "graph_hash": "a44ca2b64d79d67d8e068ea84c140f57a2287f485e405129da0095dae1db60d1",
-  "initial_state_hash": "c8093ef1f81e94e21a35c13fd260f7dbc9fdcc6cd9f67037dc769c014e9399b2",
-  "final_state_hash": "fc03a8dda49600025b84462ab2352357e13693a06a356ac596e588c73738fd85",
+  "graph_hash": "ab6d0172ed127fddded4e579b50daa496ae5856ff4cd8c94f1d0c197e24f3e78",
+  "initial_state_hash": "dbbe2360ab7811af210f55c0cd527294059475e0131a612c55e14588aeac20bf",
+  "final_state_hash": "9ff3e4faca75180f7221b132ed35e2f1c4771bf50de13257781157953bb8d5fa",
   "metrics": {
     "total_steps": 20,
-    "total_spikes": 103,
-    "mean_spikes_per_step": 5.15,
+    "total_spikes": 102,
+    "mean_spikes_per_step": 5.1,
     "final_energy": 0.9795,
-    "final_curiosity": 0.7365,
+    "final_curiosity": 0.7391,
     "final_prediction_error": 0.1073,
-    "mean_step_latency_ms": 1.04,
-    "median_step_latency_ms": 0.952,
-    "min_step_latency_ms": 0.751,
-    "max_step_latency_ms": 2.624,
-    "throughput_steps_per_sec": 961.8
+    "mean_step_latency_ms": 0.637,
+    "median_step_latency_ms": 0.567,
+    "min_step_latency_ms": 0.519,
+    "max_step_latency_ms": 1.56,
+    "throughput_steps_per_sec": 1570.5
   },
-  "snapshot_path": "diagnostics\\snapshots\\matrix_det_test_b_final.npz"
+  "snapshot_path": "diagnostics\\snapshots\\matrix_det_test_b_final.npz",
+  "graph_provenance": {
+    "mode": "REAL",
+    "provenance_status": "VERIFIED",
+    "csr_convention": "row_is_incoming",
+    "selection_strategy": "REAL_HUB_SUBGRAPH",
+    "selection_seed": 1337,
+    "sampled_neurons": 128,
+    "sampled_edges": 395,
+    "weight_source": "malecns synapse_count: integer EM synapse count per ordered pair",
+    "weight_transform": "w = min(0.8, 0.05 + 0.02 * synapse_count) [simulation transform, NOT a measured conductance]"
+  }
 }

@@ -61,6 +61,8 @@ class StructuralMutator:
         }
 
     def rewire_synapses(self, graph: ConnectomeGraph, num_new: int = 15, max_distance: float = 6000.0) -> Dict[str, Any]:
+        # CSR CONVENTION v3: rows store INCOMING edges. Creating src->tgt means
+        # appending src to row tgt's source list.
         N = graph.num_neurons
         added = 0
         adj = {i: list(zip(graph.col_indices[graph.row_offsets[i]:graph.row_offsets[i+1]],
@@ -74,14 +76,14 @@ class StructuralMutator:
             tgt = self.rng.randint(0, N)
             if src == tgt:
                 continue
-            existing = [t for t, _ in adj[src]]
-            if tgt in existing:
+            existing = [s for s, _ in adj[tgt]]
+            if src in existing:
                 continue
 
             dist = np.linalg.norm(graph.coordinates[src] - graph.coordinates[tgt])
             if dist < max_distance:
                 w = float(self.rng.uniform(0.05, 0.25))
-                adj[src].append((tgt, w))
+                adj[tgt].append((src, w))
                 added += 1
 
         new_row_offsets = [0]

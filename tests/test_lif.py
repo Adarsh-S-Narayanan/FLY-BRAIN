@@ -125,6 +125,35 @@ class TestLIFContract(unittest.TestCase):
             np.testing.assert_array_equal(o[1], outs[0][1])
             np.testing.assert_array_equal(o[2], outs[0][2])
 
+    def test_large_positive_current_fires(self):
+        p, s, r = isolated_step([1000.0], [-70.0])
+        self.assertEqual(s[0], 1.0)
+        self.assertEqual(p[0], -70.0)
+        self.assertEqual(r[0], 2)
+
+    def test_zero_degree_neuron_integrates_external_only(self):
+        # empty CSR row: V = rest + (V0-rest)*decay + ext
+        p, s, r = isolated_step([0.3], [-65.0])
+        self.assertAlmostEqual(float(p[0]), -70.0 + 5.0 * 0.95 + 0.3, places=5)
+        self.assertEqual(s[0], 0.0)
+
+    def test_nan_inf_weights_rejected(self):
+        import numpy as np
+        from src.connectome.types import ConnectomeGraph, GraphMode
+        base = dict(neuron_ids=np.array([1, 2], dtype=np.int64),
+                    coordinates=np.zeros((2, 3), dtype=np.float32),
+                    tbars=np.array([5, 5], dtype=np.int32), sides=["L", "R"],
+                    row_offsets=np.array([0, 1, 1], dtype=np.int32),
+                    col_indices=np.array([1], dtype=np.int32),
+                    mode=GraphMode.SYNTHETIC_TEST)
+        for bad in (float("nan"), float("inf")):
+            with self.assertRaises(ValueError):
+                ConnectomeGraph(weights=np.array([bad], dtype=np.float32), **base)
+        with self.assertRaises(ValueError):
+            ConnectomeGraph(weights=np.array([0.2], dtype=np.float32),
+                            col_indices=np.array([7], dtype=np.int32), **{
+                                k: v for k, v in base.items() if k != "col_indices"})
+
     def test_cpu_gpu_parity_where_available(self):
         try:
             from src.compute.vulkan_backend import VulkanComputeEngine

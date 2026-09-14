@@ -1,8 +1,8 @@
 {
-  "timestamp": 1789416441.3309824,
+  "timestamp": 1789421168.8519628,
   "overall_status": "PASSED",
-  "total_categories": 25,
-  "passed": 25,
+  "total_categories": 32,
+  "passed": 32,
   "failed": 0,
   "skipped": 0,
   "categories": {
@@ -48,7 +48,7 @@
     },
     "cpu_vulkan_numerical_parity": {
       "status": "PASS",
-      "reason": "Bit-exact / floating-point parity verified (9/9 test cases passed)."
+      "reason": "Tolerance-based parity verified (9/9 cases): max abs diff < 1e-4 with exact spike trains (NOT bit-exact)."
     },
     "single_loop_telemetry_isolation": {
       "status": "PASS",
@@ -60,15 +60,15 @@
     },
     "deterministic_experiment_replication": {
       "status": "PASS",
-      "reason": "Exact 256-bit SHA-256 match (6a81b923b5deccf7...) across independent runs."
+      "reason": "Exact 256-bit SHA-256 match (9ff3e4faca75180f...) across independent runs."
     },
     "local_model_degradation_honesty": {
       "status": "PASS",
-      "reason": "System honestly declared cognitive status: MODEL_UNAVAILABLE"
+      "reason": "System honestly declared cognitive status: OPERATIONAL"
     },
     "continuous_learning_weight_change": {
       "status": "PASS",
-      "reason": "Synaptic plasticity modified weights. Max delta_w: 1.489556e-01."
+      "reason": "Synaptic plasticity modified weights. Max delta_w: 1.490564e-01."
     },
     "ui_no_blocking_alerts": {
       "status": "PASS",
@@ -84,7 +84,7 @@
     },
     "alife_branch_replay_determinism": {
       "status": "PASS",
-      "reason": "Population snapshot branch replay produced identical hash (e74bdbfe50e6a638)."
+      "reason": "Population snapshot branch replay produced identical hash (bcdfaf998362182a)."
     },
     "developmental_structural_integrity": {
       "status": "PASS",
@@ -105,6 +105,34 @@
     "real_mode_zero_surrogate_edges": {
       "status": "PASS",
       "reason": "REAL-64 graph: 100 edges, 0 non-empirical; metadata confirms zero surrogate."
+    },
+    "csr_directionality": {
+      "status": "PASS",
+      "reason": "A->B drives B, never A; reverse direction has no effect."
+    },
+    "biological_edge_semantics": {
+      "status": "PASS",
+      "reason": "REAL weight transform declared: w = min(0.8, 0.05 + 0.02 * synapse_count) [simulation transform, NOT a measured conductance]"
+    },
+    "real_annotation_integrity": {
+      "status": "PASS",
+      "reason": "Unavailable annotations flagged UNKNOWN; available ones EMPIRICAL/DERIVED."
+    },
+    "plasticity_causal_effect": {
+      "status": "PASS",
+      "reason": "reward=0 no change; reward>0 potentiation; reward<0 depression."
+    },
+    "checkpoint_continuation": {
+      "status": "PASS",
+      "reason": "Checkpoint/resume final population hash equals uninterrupted run."
+    },
+    "llm_model_discovery_and_inference": {
+      "status": "PASS",
+      "reason": "Discovered 1 GGUF; inference=SUCCESS; model=MiniCPM5-2B-Q8_0.gguf."
+    },
+    "llm_failure_mode_and_tool_safety": {
+      "status": "PASS",
+      "reason": "Unavailable model returns structured error (no fake text); shell/unknown tools rejected."
     }
   }
 }

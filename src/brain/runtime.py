@@ -27,6 +27,7 @@ class BrainRuntime:
         self.seed = seed
         self.state = BrainState.create_initial(graph.num_neurons, seed=seed)
         self.plasticity = PlasticityEngine()
+        self.plasticity_updates = 0  # cumulative synapses updated (observability)
         
         self.gpu_engine: Optional[VulkanComputeEngine] = None
         if self.use_gpu:
@@ -187,6 +188,7 @@ class BrainRuntime:
                     post_activations=new_spk,
                     reward=reward
                 )
+        self.plasticity_updates += synapses_updated
 
         # Motor decoding
         motor_speak = float(np.mean(self.state.activations[self.motor_speak_indices])) if len(self.motor_speak_indices) else 0.0

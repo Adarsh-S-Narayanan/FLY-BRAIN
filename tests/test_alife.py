@@ -200,6 +200,47 @@ class TestPopulationCulture(unittest.TestCase):
                 self.assertEqual(o.stage.value, "dead")
 
 
+class TestStructuralStress(unittest.TestCase):
+    def test_repeated_birth_growth_prune_death_restore(self):
+        import json as _json
+        import numpy as np
+        from src.common.determinism import SeedBundle
+        from src.development.engine import DevelopmentEngine, DevelopmentState
+        from src.genome.schema import Genome
+        from src.common.events import EventLog
+        seeds = SeedBundle(experiment_seed=81, generation_seed=82, organism_seed=83,
+                           development_seed=84, mutation_seed=85, world_seed=86,
+                           teacher_seed=87)
+        pop = Population(3, seeds, GraphMode.SYNTHETIC_TEST, 32, experiment_seed=81)
+        for cycle in range(4):
+            pop.step(12)
+            for o in pop.living():
+                o.graph.validate_invariants()
+                n = o.graph.num_neurons
+                # brain arrays track neuron count exactly
+                self.assertEqual(len(o.brain.state.membrane_potentials), n)
+                self.assertEqual(len(o.brain.state.spikes), n)
+                self.assertEqual(len(o.brain.state.refractory_steps), n)
+                self.assertEqual(len(o.dev.alive), n)
+                # dead neurons: no edges, no spikes
+                degs = np.diff(o.graph.row_offsets)
+                for i, alive in enumerate(o.dev.alive):
+                    if not alive:
+                        self.assertEqual(degs[i], 0)
+                        self.assertEqual(float(o.brain.state.spikes[i]), 0.0)
+                # weights/indices finite and in bounds
+                self.assertTrue(bool(np.all(np.isfinite(o.graph.weights))))
+                self.assertTrue(bool(np.all(o.graph.col_indices >= 0)))
+                self.assertTrue(bool(np.all(o.graph.col_indices < n)))
+                self.assertEqual(len(o.graph.weights), o.graph.num_synapses)
+            if cycle == 1:
+                snap = _json.loads(_json.dumps(pop.snapshot()))
+        # pop is at tick 48; restored branch replays 24 -> 48 and must match.
+        pop2 = Population.restore(snap, seeds)
+        pop2.step(24)
+        self.assertEqual(pop2.population_hash(), pop.population_hash())
+
+
 class TestFuzz(unittest.TestCase):
     def test_genome_mutation_fuzz(self):
         for s in range(50):

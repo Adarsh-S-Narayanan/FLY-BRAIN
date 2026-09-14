@@ -31,11 +31,14 @@ def build_seeds(seed: int) -> SeedBundle:
 
 
 def run(population: int, ticks: int, seed: int, circuit_size: int,
-        out_dir: str = "diagnostics/alife_experiments") -> dict:
+        out_dir: str = "diagnostics/alife_experiments",
+        substrate: str = "synthetic") -> dict:
     os.makedirs(out_dir, exist_ok=True)
     t0 = time.time()
     seeds = build_seeds(seed)
-    pop = Population(population, seeds, GraphMode.SYNTHETIC_TEST, circuit_size,
+    mode = {"synthetic": GraphMode.SYNTHETIC_TEST, "real": GraphMode.REAL,
+            "surrogate": GraphMode.SPATIAL_SURROGATE}[substrate]
+    pop = Population(population, seeds, mode, circuit_size,
                      experiment_seed=seed)
     repro_every, sleep_every = 15, 25
     births, deaths0 = 0, 0
@@ -64,11 +67,12 @@ def run(population: int, ticks: int, seed: int, circuit_size: int,
     manifest = {
         "experiment": "canonical_alife_overlap",
         "seed": seed,
+        "substrate": substrate,
         "population_start": population,
         "population_total": len(pop.organisms),
         "ticks": ticks,
         "circuit_size": circuit_size,
-        "graph_mode": "SYNTHETIC_TEST",
+        "graph_mode": mode.value,
         "births": births,
         "deaths": deaths,
         "generations_present": generations,
@@ -96,7 +100,8 @@ def verify(manifest_path: str) -> dict:
     with open(manifest_path, encoding="utf-8") as f:
         m = json.load(f)
     m2 = run(m["population_start"], m["ticks"], m["seed"], m["circuit_size"],
-             out_dir=os.path.dirname(manifest_path) + "_reverify_tmp")
+             out_dir=os.path.dirname(manifest_path) + "_reverify_tmp",
+             substrate=m.get("substrate", "synthetic"))
     match = (m2["population_hash"] == m["population_hash"])
     print(f"[alife] verify: original={m['population_hash'][:16]} "
           f"reproduced={m2['population_hash'][:16]} match={match}")
@@ -112,9 +117,12 @@ if __name__ == "__main__":
     ap.add_argument("--ticks", type=int, default=150)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--circuit-size", type=int, default=32)
+    ap.add_argument("--substrate", choices=["synthetic", "real", "surrogate"],
+                    default="synthetic")
     ap.add_argument("--verify", type=str, default="")
     args = ap.parse_args()
     if args.verify:
         ok = verify(args.verify)["deterministic_match"]
         sys.exit(0 if ok else 1)
-    run(args.population, args.ticks, args.seed, args.circuit_size)
+    run(args.population, args.ticks, args.seed, args.circuit_size,
+        substrate=args.substrate)

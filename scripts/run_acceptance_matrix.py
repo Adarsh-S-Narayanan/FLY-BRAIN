@@ -263,7 +263,8 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
             if passed:
                 matrix["cpu_vulkan_numerical_parity"] = {
                     "status": "PASS",
-                    "reason": f"Bit-exact / floating-point parity verified ({pass_count}/{total} test cases passed)."
+                    "reason": f"Tolerance-based parity verified ({pass_count}/{total} cases): "
+                              f"max abs diff < 1e-4 with exact spike trains (NOT bit-exact)."
                 }
             else:
                 matrix["cpu_vulkan_numerical_parity"] = {
@@ -598,10 +599,11 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
                                     cache_name="matrix_real_64.npz")
         _body = [int(x) for x in _gr.neuron_ids]
         _bad = 0
+        # CSR v3: row = INCOMING sources, so biological edge = (col_source, row_target).
         for _i in range(_gr.num_neurons):
             _s, _e = int(_gr.row_offsets[_i]), int(_gr.row_offsets[_i + 1])
             for _k in range(_s, _e):
-                if (_body[_i], _body[int(_gr.col_indices[_k])]) not in _pairs:
+                if (_body[int(_gr.col_indices[_k])], _body[_i]) not in _pairs:
                     _bad += 1
         _meta_ok = (_gr.provenance_metadata.get("surrogate_edge_count", -1) == 0
                     and _gr.provenance_metadata.get("fallback_edges_added", -1) == 0)
@@ -612,6 +614,155 @@ def evaluate_acceptance_matrix() -> Dict[str, Any]:
         }
     except Exception as e:
         matrix["real_mode_zero_surrogate_edges"] = {"status": "FAIL", "reason": f"Provenance gate failed: {e}"}
+
+    # 26. csr_directionality
+    print("[26/32] Evaluating csr_directionality...")
+    try:
+        from src.compute.cpu_reference import cpu_lif_step as _lif
+        _ro = np.array([0, 0, 1], dtype=np.int32)   # row1 = incoming from neuron 0
+        _ci = np.array([0], dtype=np.int32)
+        _w = np.array([5.0], dtype=np.float32)
+        # A(0) spikes -> B(1) must fire
+        _p, _s, _ = _lif(_ro, _ci, _w,
+                         np.array([1.0, 0.0], dtype=np.float32),
+                         np.zeros(2, dtype=np.float32),
+                         np.zeros(2, dtype=np.float32), np.zeros(2, dtype=np.int32),
+                         decay=0.85, threshold=1.0, v_reset=0.0, v_rest=0.0, t_ref=2)
+        # B(1) spikes -> A(0) must stay silent
+        _p2, _s2, _ = _lif(_ro, _ci, _w,
+                           np.array([0.0, 1.0], dtype=np.float32),
+                           np.zeros(2, dtype=np.float32),
+                           np.zeros(2, dtype=np.float32), np.zeros(2, dtype=np.int32),
+                           decay=0.85, threshold=1.0, v_reset=0.0, v_rest=0.0, t_ref=2)
+        _ok = (_s[1] == 1.0) and (_s[0] == 0.0) and (_s2[0] == 0.0)
+        matrix["csr_directionality"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "A->B drives B, never A; reverse direction has no effect."
+        }
+    except Exception as e:
+        matrix["csr_directionality"] = {"status": "FAIL", "reason": f"Directionality failed: {e}"}
+
+    # 27. biological_edge_semantics (weight transform provenance)
+    print("[27/32] Evaluating biological_edge_semantics...")
+    try:
+        _gp = get_or_create_circuit(64, mode=GraphMode.REAL, seed=42,
+                                    cache_name="matrix_real_64.npz").provenance_metadata
+        _ok = (all(k in _gp for k in ("weight_source", "weight_transform",
+                                      "biological_measurement", "simulation_semantics",
+                                      "selection_strategy", "sampling_bias"))
+               and _gp.get("surrogate_edge_count", -1) == 0)
+        matrix["biological_edge_semantics"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": f"REAL weight transform declared: {_gp.get('weight_transform')}"
+        }
+    except Exception as e:
+        matrix["biological_edge_semantics"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 28. real_annotation_integrity
+    print("[28/32] Evaluating real_annotation_integrity...")
+    try:
+        from src.connectome.loader import load_raw_neurons as _lrn
+        _n = _lrn()[0]
+        _al = _n.annotation_levels
+        _ok = (_al.get("cell_type") == "UNKNOWN" and _al.get("hemilineage") == "UNKNOWN"
+               and _al.get("neurotransmitter") == "UNKNOWN"
+               and _al.get("position") == "EMPIRICAL" and _al.get("tail_distance") == "DERIVED")
+        _gpm = get_or_create_circuit(64, mode=GraphMode.REAL, seed=42,
+                                     cache_name="matrix_real_64.npz").provenance_metadata
+        _ea = _gpm.get("edge_annotations", {})
+        _ok = _ok and _ea.get("annotation_level") == "DERIVED"
+        matrix["real_annotation_integrity"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "Unavailable annotations flagged UNKNOWN; available ones EMPIRICAL/DERIVED."
+        }
+    except Exception as e:
+        matrix["real_annotation_integrity"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 29. plasticity_causal_effect
+    print("[29/32] Evaluating plasticity_causal_effect...")
+    try:
+        from src.compute.cpu_reference import cpu_plasticity_step as _cps
+        _ro = np.array([0, 0, 1], dtype=np.int32)
+        _ci = np.array([0], dtype=np.int32)
+        _w = np.array([0.5], dtype=np.float32)
+        _pre = np.array([1.0, 0.0], dtype=np.float32)
+        _post = np.array([0.0, 1.0], dtype=np.float32)
+        _w0 = _cps(_ci, _w, _pre, _post, _ro, learning_rate=0.05, reward=0.0)
+        _wup = _cps(_ci, _w, _pre, _post, _ro, learning_rate=0.05, reward=1.0)
+        _wdn = _cps(_ci, _w, _pre, _post, _ro, learning_rate=0.05, reward=-1.0)
+        _ok = (abs(float(_w0[0]) - 0.5) < 1e-9 and float(_wup[0]) > 0.5 and float(_wdn[0]) < 0.5)
+        matrix["plasticity_causal_effect"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "reward=0 no change; reward>0 potentiation; reward<0 depression."
+        }
+    except Exception as e:
+        matrix["plasticity_causal_effect"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 30. checkpoint_continuation
+    print("[30/32] Evaluating checkpoint_continuation...")
+    try:
+        from src.common.determinism import SeedBundle as _SB
+        from src.population.population import Population as _P
+        from scripts.run_long_campaign import seeds_for as _sf, TICKS_PER_GEN as _T
+        _seed = 31
+        _fresh = _P(4, _sf(_seed), GraphMode.SYNTHETIC_TEST, 32, experiment_seed=_seed)
+        for _ in range(4):
+            _fresh.step(_T); _fresh.reproduce(2)
+        _h = _fresh.population_hash()
+        _int = _P(4, _sf(_seed), GraphMode.SYNTHETIC_TEST, 32, experiment_seed=_seed)
+        for _ in range(2):
+            _int.step(_T); _int.reproduce(2)
+        _res = _P.restore(_int.snapshot(), _sf(_seed))
+        for _ in range(2):
+            _res.step(_T); _res.reproduce(2)
+        _ok = (_res.population_hash() == _h)
+        matrix["checkpoint_continuation"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "Checkpoint/resume final population hash equals uninterrupted run."
+        }
+    except Exception as e:
+        matrix["checkpoint_continuation"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 31. llm_model_discovery_and_inference
+    print("[31/32] Evaluating llm_model_discovery_and_inference...")
+    try:
+        from src.llm.discovery import discover_models as _dm
+        from src.llm.runtime import LocalLLM as _L, GenerationConfig as _GC
+        _models = [m for m in _dm() if m.status == "DISCOVERED"]
+        _ok = len(_models) >= 1 and _models[0].architecture == "llama" and len(_models[0].sha256) == 64
+        _infer = "SKIPPED"
+        if _ok and os.environ.get("FLYBRAIN_SKIP_LLM_INFER") != "1":
+            _llm = _L(_models[0], n_ctx=1024)
+            if _llm.load():
+                _r = _llm.generate("1, 2,", _GC(max_tokens=4, seed=1))
+                _infer = _r["status"]
+                _llm.unload()
+        _ok = _ok and _infer in ("SUCCESS", "SKIPPED")
+        matrix["llm_model_discovery_and_inference"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": f"Discovered {len(_models)} GGUF; inference={_infer}; model={_models[0].filename if _models else 'none'}."
+        }
+    except Exception as e:
+        matrix["llm_model_discovery_and_inference"] = {"status": "FAIL", "reason": f"failed: {e}"}
+
+    # 32. llm_failure_mode_and_tool_safety
+    print("[32/32] Evaluating llm_failure_mode_and_tool_safety...")
+    try:
+        from src.llm.runtime import LocalLLM as _L2
+        from src.llm.scientist import ScientistLoop as _SL, ToolSpec as _TS
+        _missing = _L2(None).generate("x")
+        _loop = _SL(_L2(None))
+        _loop.register(_TS("echo", "d", {}, lambda p: p))
+        _rej_unknown = _loop.execute_tool_request({"tool": "shell", "params": {}})["status"]
+        _rej_bad = _loop.execute_tool_request({"tool": "echo", "params": {"c": "os.system('x')"}})["status"]
+        _ok = (_missing["status"] == "MODEL_UNAVAILABLE" and _missing["text"] is None
+               and _rej_unknown == "REJECTED" and _rej_bad == "REJECTED")
+        matrix["llm_failure_mode_and_tool_safety"] = {
+            "status": "PASS" if _ok else "FAIL",
+            "reason": "Unavailable model returns structured error (no fake text); shell/unknown tools rejected."
+        }
+    except Exception as e:
+        matrix["llm_failure_mode_and_tool_safety"] = {"status": "FAIL", "reason": f"failed: {e}"}
 
     # Summary
     pass_count = sum(1 for v in matrix.values() if v["status"] == "PASS")

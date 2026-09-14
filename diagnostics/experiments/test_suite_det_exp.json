@@ -1,6 +1,6 @@
 {
   "experiment_id": "test_suite_det_exp",
-  "timestamp": 1789409516.8354843,
+  "timestamp": 1789421464.6407368,
   "seed": 42,
   "graph_mode": "SYNTHETIC_TEST",
   "neuron_scale": 64,
@@ -9,25 +9,36 @@
   "soma_file_hash": "6c1c415ab748ab1cc65c9a274885cfadc880a88eabb17915afe643c105bac84d",
   "connections_file_hash": "039e929b4ccc776f13a8d17eb9833d85de9454b8f43a0a0de34fdabb7ca2a668",
   "brain_shader_hash": "85427c36a5de1f638280fcffcd7295c864d8f78fee01fd5990fe26afaa9a3b65",
-  "plasticity_shader_hash": "9653708b6d75e07d1ec6d6fe4030c228d3003ca2d95f68fdcd95bb8a04bd47c1",
-  "git_commit": "bb47a552e5be6e9b9ea7b9202c0037fb4df5b8e9",
+  "plasticity_shader_hash": "5321dd5fc6985d93d302f4cc6fc0e80a4b04f5ca022cbb7a7b18ef3b448ef17c",
+  "git_commit": "bab9c09b63951828228ad7a0d38c290f330c64d0",
   "hardware_device": "AMD Radeon(TM) Graphics",
   "backend": "vulkan_gpu",
-  "graph_hash": "dac9a1439ea64bb9b108ed3a7f5c4b275be8820882a782e1dd7c53a10ad60c6d",
-  "initial_state_hash": "eebc7093542143e593b9ccc6a28befb69e1156063d0e5078d84e895f79a8566a",
-  "final_state_hash": "af37fb897c61ba7e727d5c79c6dc7305b91e0198a1cae6eebef1219aa4a257de",
+  "graph_hash": "6f95607b708da371db0f34a9b32a06d50582e11b4f99beffe5e98e8e85c50fe8",
+  "initial_state_hash": "4a0df5ee8d9ae5ff609ac5fa44db38935fd10d71b34aa6680811825125bf77c1",
+  "final_state_hash": "772119e0a2905ab74388e97d781d938acc7888d0f70696af299729a3a300fe5a",
   "metrics": {
     "total_steps": 15,
-    "total_spikes": 109,
-    "mean_spikes_per_step": 7.27,
+    "total_spikes": 105,
+    "mean_spikes_per_step": 7.0,
     "final_energy": 0.9842,
-    "final_curiosity": 0.7628,
+    "final_curiosity": 0.7576,
     "final_prediction_error": 0.1077,
-    "mean_step_latency_ms": 0.616,
-    "median_step_latency_ms": 0.54,
-    "min_step_latency_ms": 0.506,
-    "max_step_latency_ms": 1.502,
-    "throughput_steps_per_sec": 1622.5
+    "mean_step_latency_ms": 0.762,
+    "median_step_latency_ms": 0.608,
+    "min_step_latency_ms": 0.554,
+    "max_step_latency_ms": 2.911,
+    "throughput_steps_per_sec": 1311.8
   },
-  "snapshot_path": "diagnostics\\snapshots\\test_suite_det_exp_final.npz"
+  "snapshot_path": "diagnostics\\snapshots\\test_suite_det_exp_final.npz",
+  "graph_provenance": {
+    "mode": "SYNTHETIC_TEST",
+    "provenance_status": "EXPERIMENTAL",
+    "csr_convention": "row_is_incoming",
+    "selection_strategy": "SYNTHETIC_RING_LATTICE",
+    "selection_seed": 42,
+    "sampled_neurons": 64,
+    "sampled_edges": 570,
+    "weight_source": "simulation",
+    "weight_transform": "none"
+  }
 }

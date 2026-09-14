@@ -23,7 +23,9 @@ DEFAULT_CONNECTIONS_PATH = os.path.join("malecns", "data-raw", "malecns_v1_0_con
 CACHE_DIR = os.path.join("diagnostics", "connectome_cache")
 
 # Bump whenever graph construction semantics change; stale caches are rebuilt.
-LOADER_VERSION = 2
+# v3: CSR rows store INCOMING edges (row i = presynaptic sources driving neuron i),
+# matching LIF/plasticity dynamics. v2 and earlier stored outgoing edges (inverted).
+LOADER_VERSION = 3
 
 
 def _file_sha256(path: str) -> str:
@@ -51,7 +53,13 @@ def load_raw_neurons(csv_path: str = DEFAULT_SOMA_PATH) -> List[NeuronMetadata]:
                 side = row["soma_side"].strip()
                 tbars = int(row["tbars"])
                 body_size = int(row["body_size"])
-                
+
+                def _f(key: str) -> float:
+                    try:
+                        return float(row.get(key, 0.0) or 0.0)
+                    except (ValueError, TypeError):
+                        return 0.0
+
                 neurons.append(NeuronMetadata(
                     body_id=body_id,
                     nucleus_id=nucleus_id,
@@ -60,7 +68,11 @@ def load_raw_neurons(csv_path: str = DEFAULT_SOMA_PATH) -> List[NeuronMetadata]:
                     z=nz,
                     side=side,
                     tbars=tbars,
-                    body_size=body_size
+                    body_size=body_size,
+                    tail_x=_f("tail_x"),
+                    tail_y=_f("tail_y"),
+                    tail_z=_f("tail_z"),
+                    tail_distance=_f("tail_distance"),
                 ))
             except (ValueError, KeyError):
                 continue
@@ -292,8 +304,14 @@ def build_real_connectome(
     # 2. Ingest real synaptic connections.
     # R5/R6: REAL mode contains ONLY empirical MaleCNS edges. A neuron with no
     # selected biological outgoing edge stays disconnected; no invented edges.
+    # CSR CONVENTION (v3): row i stores INCOMING edges — adjacency[post][pre].
+    # The LIF kernel sums row i as the synaptic input TO neuron i, so this
+    # orientation is required for pre->post signal flow.
     adjacency: Dict[int, Dict[int, float]] = {i: {} for i in range(N)}
     empirical_pairs = 0
+    neuropil_counts: Dict[str, int] = {}
+    conf_sum = 0.0
+    conf_min = 1.0
 
     with open(connections_path, mode="r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -309,8 +327,19 @@ def build_real_connectome(
                     if pre_idx != post_idx:
                         # Normalized initial biological weight
                         w = min(0.8, 0.05 + 0.02 * syn_count)
-                        adjacency[pre_idx][post_idx] = w
+                        adjacency[post_idx][pre_idx] = w
                         empirical_pairs += 1
+                        # Real per-edge annotations (DERIVED aggregation, no fabrication):
+                        # neuropil region + EM confidence travel with the pair.
+                        npil = str(row.get("neuropil", "unknown"))
+                        neuropil_counts[npil] = neuropil_counts.get(npil, 0) + 1
+                        try:
+                            cf = float(row.get("confidence", "nan"))
+                            if cf == cf:
+                                conf_sum += cf
+                                conf_min = min(conf_min, cf)
+                        except (ValueError, TypeError):
+                            pass
             except (ValueError, KeyError):
                 continue
 
@@ -337,8 +366,28 @@ def build_real_connectome(
     prov_meta = {
         "mode": GraphMode.REAL.value,
         "provenance_status": ProvenanceStatus.VERIFIED.value,
+        "csr_convention": "row_is_incoming",
         "dataset_name": "Janelia MaleCNS",
         "version": "male-cns:v1.0",
+        "selection_strategy": "REAL_HUB_SUBGRAPH",
+        "selection_detail": "top presynaptic T-bar hubs, balanced left/right halves, sorted by body_id",
+        "selection_seed": int(seed),
+        "source_neuron_count": len(neurons),
+        "sampled_neuron_count": N,
+        "sampled_edge_count": "see circuit_synapses",
+        "sampling_bias": "hub-biased (high T-bar neurons overrepresented); NOT a random representative sample",
+        "weight_source": "malecns synapse_count: integer EM synapse count per ordered pair",
+        "weight_transform": "w = min(0.8, 0.05 + 0.02 * synapse_count) [simulation transform, NOT a measured conductance]",
+        "biological_measurement": "synapse_count only; direction = pre_body_id -> post_body_id",
+        "simulation_semantics": "dimensionless LIF input current contributed per presynaptic spike",
+        "edge_annotations": {
+            "neuropil_distribution": dict(sorted(neuropil_counts.items())),
+            "annotation_level": "DERIVED",
+            "note": "per-edge neuropil/confidence aggregated over sampled pairs; "
+                    "cell-type/hemilineage/neurotransmitter NOT in local dataset (UNKNOWN)",
+        },
+        "edge_confidence_mean": round(conf_sum / max(1, empirical_pairs), 4),
+        "edge_confidence_min": round(conf_min, 4) if empirical_pairs else None,
         "soma_file": soma_path,
         "connections_file": connections_path,
         "soma_sha256": _file_sha256(soma_path),
@@ -348,7 +397,7 @@ def build_real_connectome(
         "circuit_synapses": len(col_indices),
         "empirical_edge_count": int(empirical_pairs),
         "surrogate_edge_count": 0,
-        "connected_sources": int(connected_sources),
+        "connected_targets": int(connected_sources),
         "fallback_edges_added": 0,
     }
 
@@ -374,6 +423,8 @@ def build_connectome_circuit(
     """
     Constructs a deterministic MaleCNS Spatial Surrogate circuit using KD-tree
     spatial proximity and biological presynaptic T-bar capacities.
+    CSR CONVENTION (v3): row i stores INCOMING edges (neighbor j drives i);
+    weights scale with the SOURCE neuron's T-bar capacity.
     """
     sorted_neurons = sorted(neurons, key=lambda n: n.tbars, reverse=True)
     
@@ -405,16 +456,16 @@ def build_connectome_circuit(
     
     for i in range(N):
         dists, indices = tree.query(coordinates[i], k=min(max_degree + 1, N), distance_upper_bound=interaction_radius)
-        valid_targets = []
+        valid_sources = []
         for d, j in zip(dists, indices):
             if j < N and j != i and not np.isinf(d):
-                tbar_factor = min(1.0, float(tbars[i]) / 5000.0)
+                tbar_factor = min(1.0, float(tbars[int(j)]) / 5000.0)
                 dist_factor = max(0.1, 1.0 - (d / interaction_radius))
                 w = float(np.clip(0.1 + 0.3 * (tbar_factor * dist_factor), 0.05, 0.6))
-                valid_targets.append((j, w))
-        
-        valid_targets.sort(key=lambda x: x[0])
-        for j, w in valid_targets:
+                valid_sources.append((int(j), w))
+
+        valid_sources.sort(key=lambda x: x[0])
+        for j, w in valid_sources:
             col_indices.append(j)
             weights.append(w)
         row_offsets.append(len(col_indices))
@@ -427,8 +478,12 @@ def build_connectome_circuit(
     prov_meta = {
         "mode": GraphMode.SPATIAL_SURROGATE.value,
         "provenance_status": ProvenanceStatus.SURROGATE.value,
+        "csr_convention": "row_is_incoming",
         "dataset_name": "Janelia MaleCNS Spatial Surrogate",
         "method": "cKDTree Euclidean Spatial Proximity",
+        "selection_strategy": "REAL_HUB_SUBGRAPH_SOMAS",
+        "selection_seed": int(seed),
+        "sampling_bias": "hub-biased soma sample; edges are proximity-derived, NOT biological",
         "soma_sha256": _file_sha256(DEFAULT_SOMA_PATH) if os.path.exists(DEFAULT_SOMA_PATH) else "unknown",
         "circuit_neurons": N,
         "circuit_synapses": len(col_indices),
@@ -451,7 +506,7 @@ def build_connectome_circuit(
     )
 
 def build_synthetic_test_graph(num_neurons: int = 256, seed: int = 42) -> SyntheticTestGraph:
-    """Constructs a deterministic synthetic test graph for regression and invariant tests."""
+    """Deterministic synthetic test graph (CSR CONVENTION v3: row i = INCOMING sources)."""
     rng = np.random.RandomState(seed)
     N = num_neurons
     neuron_ids = np.arange(100000, 100000 + N, dtype=np.int64)
@@ -459,24 +514,27 @@ def build_synthetic_test_graph(num_neurons: int = 256, seed: int = 42) -> Synthe
     tbars = rng.randint(50, 500, N).astype(np.int32)
     sides = ["L" if i % 2 == 0 else "R" for i in range(N)]
 
-    # Small-world ring lattice with rewired shortcuts
+    # Small-world ring lattice with rewired shortcuts, built as directed
+    # outgoing pairs then transposed into incoming-per-row CSR.
     k = 8
+    outgoing: Dict[int, set] = {i: set() for i in range(N)}
+    for i in range(N):
+        for offset in range(1, k // 2 + 1):
+            outgoing[i].add((i + offset) % N)
+            outgoing[i].add((i - offset) % N)
+        outgoing[i].add(int(rng.randint(0, N)))
+        outgoing[i].discard(i)
+    incoming: Dict[int, List[int]] = {i: [] for i in range(N)}
+    for src, tgts in outgoing.items():
+        for t in tgts:
+            incoming[t].append(src)
+
     row_offsets = [0]
     col_indices = []
     weights = []
-
     for i in range(N):
-        targets = set()
-        for offset in range(1, k // 2 + 1):
-            targets.add((i + offset) % N)
-            targets.add((i - offset) % N)
-        # Random shortcut
-        targets.add(int(rng.randint(0, N)))
-        targets.discard(i)
-
-        sorted_targets = sorted(list(targets))
-        for tgt in sorted_targets:
-            col_indices.append(tgt)
+        for src in sorted(incoming[i]):
+            col_indices.append(src)
             weights.append(float(rng.uniform(0.1, 0.4)))
         row_offsets.append(len(col_indices))
 
@@ -486,7 +544,11 @@ def build_synthetic_test_graph(num_neurons: int = 256, seed: int = 42) -> Synthe
 
     populations = build_population_registry(neuron_ids, coordinates, tbars, sides)
     prov_meta = {
+        "mode": GraphMode.SYNTHETIC_TEST.value,
+        "provenance_status": ProvenanceStatus.EXPERIMENTAL.value,
+        "csr_convention": "row_is_incoming",
         "dataset_name": "Deterministic Synthetic Test Graph",
+        "selection_strategy": "SYNTHETIC_RING_LATTICE",
         "seed": seed,
         "k_degree": k
     }
@@ -524,7 +586,9 @@ def get_or_create_circuit(
             data = np.load(cache_path, allow_pickle=True)
             stored_mode = GraphMode(str(data["mode"]))
             version_ok = (str(data.get("loader_version", 1)) == str(LOADER_VERSION))
-            if stored_mode == mode and len(data["neuron_ids"]) == max_neurons and version_ok:
+            has_metadata = "provenance_metadata" in data.files and data["provenance_metadata"].item()
+            if (stored_mode == mode and len(data["neuron_ids"]) == max_neurons
+                    and version_ok and has_metadata):
                 populations = build_population_registry(
                     data["neuron_ids"], data["coordinates"], data["tbars"], list(data["sides"])
                 )
@@ -542,22 +606,9 @@ def get_or_create_circuit(
                     col_indices=data["col_indices"],
                     weights=data["weights"],
                     graph_hash=str(data["graph_hash"]),
-                    populations=populations
+                    populations=populations,
+                    provenance_metadata=json.loads(data["provenance_metadata"].item()),
                 )
-                # C3: provenance must survive the cache round-trip.
-                is_real = (graph.mode == GraphMode.REAL)
-                is_surr = (graph.mode == GraphMode.SPATIAL_SURROGATE)
-                graph.provenance_metadata = {
-                    "mode": graph.mode.value,
-                    "provenance_status": graph.provenance_status.value,
-                    "circuit_neurons": graph.num_neurons,
-                    "circuit_synapses": graph.num_synapses,
-                    "empirical_edge_count": graph.num_synapses if is_real else 0,
-                    "surrogate_edge_count": graph.num_synapses if is_surr else 0,
-                    "fallback_edges_added": 0,
-                    "from_cache": True,
-                    "loader_version": LOADER_VERSION,
-                }
                 return graph
         except Exception:
             pass
@@ -586,6 +637,7 @@ def get_or_create_circuit(
         weights=graph.weights,
         graph_hash=graph.graph_hash,
         mode=graph.mode.value,
+        provenance_metadata=np.array(json.dumps(graph.provenance_metadata, sort_keys=True)),
         loader_version=np.array(LOADER_VERSION),
     )
     return graph

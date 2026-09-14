@@ -111,22 +111,25 @@ class PlasticityEngine:
                 new_edges[i].append((graph.col_indices[k], graph.weights[k]))
 
         # Search for candidates among active neurons
+        # CSR CONVENTION v3: creating directed edge a->b appends source a to row b.
         shuffled = rng.permutation(active_indices)
         for idx_a in shuffled:
             if added_count >= max_new_synapses:
                 break
-            existing_targets = {t for t, _ in new_edges[idx_a]}
             coord_a = graph.coordinates[idx_a]
-            
+
             for idx_b in shuffled:
-                if idx_a == idx_b or idx_b in existing_targets:
+                if idx_a == idx_b:
+                    continue
+                existing_targets = {s for s, _ in new_edges[idx_b]}
+                if idx_a in existing_targets:
                     continue
                 coord_b = graph.coordinates[idx_b]
                 dist = np.linalg.norm(coord_a - coord_b)
                 # Within biological reach (e.g. 8000 nm)
                 if dist < 8000.0:
                     init_weight = float(0.1 + 0.1 * rng.rand())
-                    new_edges[idx_a].append((int(idx_b), init_weight))
+                    new_edges[idx_b].append((int(idx_a), init_weight))
                     added_count += 1
                     if added_count >= max_new_synapses:
                         break

@@ -75,6 +75,34 @@ class TestUIAPI(unittest.TestCase):
         self.assertIn("runtime", d)
         self.assertTrue(d["dataset_provenance"]["soma_sha256"])
 
+    def test_llm_status_discovery_and_tools(self):
+        st = client.get("/api/llm/status").json()
+        self.assertIn("runtime_status", st)
+        self.assertIn("discovered", st)
+        self.assertGreaterEqual(len(st["discovered"]), 1)
+        self.assertEqual(st["discovered"][0]["architecture"], "llama")
+        tools = client.get("/api/llm/tools").json()
+        for required in ("inspect_brain_state", "inspect_provenance", "query_memory",
+                         "run_bounded_experiment", "inspect_population"):
+            self.assertIn(required, tools)
+
+    def test_llm_tool_safety_rejects_unknown(self):
+        r = client.post("/api/llm/tool", json={"tool": "run_shell", "params": {}}).json()
+        self.assertEqual(r["status"], "REJECTED")
+
+    def test_llm_tool_inspection_returns_real_state(self):
+        r = client.post("/api/llm/tool",
+                        json={"tool": "inspect_provenance", "params": {}}).json()
+        self.assertEqual(r["status"], "SUCCESS")
+        self.assertIn("graph_hash", r["result"])
+        self.assertIn("csr_convention", r["result"])
+
+    def test_llm_generate_real(self):
+        r = client.post("/api/llm/generate",
+                        json={"prompt": "1 + 1 =", "max_tokens": 8, "seed": 3}).json()
+        self.assertEqual(r["status"], "SUCCESS")
+        self.assertIn("model_sha256", r["provenance"])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

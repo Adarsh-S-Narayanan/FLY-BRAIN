@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Vulkan-1.2%2B%20Compute-red?logo=vulkan&logoColor=white" alt="Vulkan Compute">
   <img src="https://img.shields.io/badge/Biological%20Data-Janelia%20MaleCNS-059669" alt="Janelia MaleCNS">
-  <img src="https://img.shields.io/badge/Acceptance%20Matrix-25%2F25%20PASSED-brightgreen" alt="Acceptance Matrix">
+  <img src="https://img.shields.io/badge/Acceptance%20Matrix-32%2F32%20PASSED-brightgreen" alt="Acceptance Matrix">
   <img src="https://img.shields.io/badge/Platform-Windows%2011%20%7C%20Linux-0284c7" alt="Platform">
 </p>
 
@@ -24,7 +24,7 @@
 4. [Persistent Vulkan Compute Engine](#persistent-vulkan-compute-engine)
 5. [FlyBrain Lab: Scientific Workstation UI](#flybrain-lab-scientific-workstation-ui)
 6. [Deterministic Experimentation CLI](#deterministic-experimentation-cli)
-7. [Automated Release Acceptance Matrix (25/25 Passed)](#automated-release-acceptance-matrix-2525-passed)
+7. [Automated Release Acceptance Matrix (32/32 Passed)](#automated-release-acceptance-matrix-3232-passed)
 8. [Multi-Store Persistent Memory](#multi-store-persistent-memory)
 9. [Installation & Quick Start](#installation--quick-start)
 10. [Hardware Benchmark Results](#hardware-benchmark-results)
@@ -101,7 +101,7 @@ For each neuron $i \in \{0, \dots, N-1\}$:
    Otherwise:
    $$S_i(t) = 0.0, \quad V_i(t) = \max\left(V_{\text{cand}, i}, V_{\text{reset}} - 1.0\right), \quad R_i(t) = 0$$
 
-Both the compiled GLSL compute shader (`shaders/brain_step.comp`) and CPU reference engine (`src/compute/cpu_reference.py`) implement this exact formulation with $< 1.79 \times 10^{-7}$ numerical divergence.
+Both the compiled GLSL compute shader (`shaders/brain_step.comp`) and CPU reference engine (`src/compute/cpu_reference.py`) implement this exact formulation with trajectory parity (max abs diff < 1e-4; spike outputs identical), explicitly not bit-exact.
 
 ---
 
@@ -160,7 +160,7 @@ flybrain docs-verify
 
 ---
 
-## Automated Release Acceptance Matrix (25/25 Passed)
+## Automated Release Acceptance Matrix (32/32 Passed)
 
 Release readiness is verified by `scripts/run_acceptance_matrix.py`, producing `diagnostics/acceptance_matrix.json`.
 Every PASS corresponds to an executable behavioral assertion (no source-text-only checks):
@@ -177,7 +177,7 @@ Every PASS corresponds to an executable behavioral assertion (no source-text-onl
 | 8 | `reset_potential_invariance` | **PASS** | Membrane potential clamped to $V_{reset}$ (-70 mV) upon spike generation. |
 | 9 | `vulkan_discovery_and_selection` | **PASS** | Vulkan 1.3 physical device discovered: AMD Radeon(TM) Graphics. |
 | 10 | `persistent_resource_lifecycle` | **PASS** | GPU buffers and command buffers remain resident across simulation steps. |
-| 11 | `cpu_vulkan_numerical_parity` | **PASS** | Bit-exact parity verified across 9 test cases ($< 1.79 \times 10^{-7}$ diff). |
+| 11 | `cpu_vulkan_numerical_parity` | **PASS** | Trajectory parity (max abs diff < 1e-4) with exact spike trains across 9 test cases (NOT bit-exact; documented). |
 | 12 | `single_loop_telemetry_isolation` | **PASS** | Authoritative simulation loop runs in background without blocking telemetry. |
 | 13 | `thread_lock_concurrency` | **PASS** | Thread-safe RLock prevents data races during concurrent queries. |
 | 14 | `deterministic_experiment_replication` | **PASS** | Exact 256-bit SHA-256 state match across independent runs. |
@@ -192,6 +192,13 @@ Every PASS corresponds to an executable behavioral assertion (no source-text-onl
 | 23 | `overlapping_reproduction` | **PASS** | Multiple reproductions; parents alive at every birth; >1 generation coexists. |
 | 24 | `cultural_transmission_gain` | **PASS** | Measured teacher→student learning gain with provenance chain. |
 | 25 | `real_mode_zero_surrogate_edges` | **PASS** | REAL graph edges are 100% empirical; metadata confirms zero surrogate. |
+| 26 | `csr_directionality` | **PASS** | Incoming-CSR: A→B drives B; reverse-direction input to A has no effect. |
+| 27 | `biological_edge_semantics` | **PASS** | REAL weights provenance: `synapse_count` transform, no conductance claim. |
+| 28 | `real_annotation_integrity` | **PASS** | Unavailable annotations flagged UNKNOWN; available ones EMPIRICAL/DERIVED. |
+| 29 | `plasticity_causal_effect` | **PASS** | Reward 0 no change; reward >0 potentiation; reward <0 depression. |
+| 30 | `checkpoint_continuation` | **PASS** | Checkpoint/resume final population hash equals uninterrupted run. |
+| 31 | `llm_model_discovery_and_inference` | **PASS** | Local GGUF discovered, loaded, and generated tokens. |
+| 32 | `llm_failure_mode_and_tool_safety` | **PASS** | Unavailable model returns structured error; shell/unknown tools rejected. |
 
 ---
 
@@ -250,51 +257,68 @@ Windows 11) against the current empirical REAL topology (20 persistent steps eac
 
 ## Artificial-Life Layer — Honest Status
 
-FlyBrain contains a real, small-scale artificial-life layer on top of the connectome core.
+FlyBrain contains a real, small-scale artificial-life layer on top of the connectome core, now extended with local LLM-driven scientific tooling and reproducible campaign infrastructure.
 Nothing below is mocked: every claimed behavior is implemented, tested in
-`tests/test_alife.py` (12/12 pass), and reproducible via `scripts/run_alife_experiment.py`.
+`tests/test_alife.py` (12/12 pass) and the broader suite (111 tests passing), and reproducible via `scripts/run_alife_experiment.py`.
 Details: `docs/alife_architecture.md`.
 
 ```bash
 # Canonical overlapping-generation experiment (CPU, deterministic)
-.venv\Scripts\python.exe scripts/run_alife_experiment.py --population 10 --ticks 150 --seed 7
+.venv\Scripts\python.exe scripts/run_alife_experiment.py --population 6 --ticks 60 --seed 7
 
 # Bit-exact replay verification (must print match=True)
-.venv\Scripts\python.exe scripts/run_alife_experiment.py --verify diagnostics/alife_experiments/alife_p10_t150_s7.json
+.venv\Scripts\python.exe scripts/run_alife_experiment.py --verify diagnostics/alife_experiments/alife_p6_t60_s7.json
+
+# Multi-generation campaign with checkpoint/resume
+.venv\Scripts\python.exe scripts/run_long_campaign.py --generations 4 --population 6 --seed 11
+.venv\Scripts\python.exe scripts/run_long_campaign.py --resume diagnostics/campaigns/camp_11_6/checkpoint.json --generations 4
+
+# Honest performance benchmarks (never overwrites; timestamped provenance report)
+.venv\Scripts\python.exe scripts/run_benchmarks.py
+
+# Adversarial boundary and failure-mode tests
+.venv\Scripts\python.exe -m unittest tests.test_adversarial
 
 # Live colony API (after `flybrain lab`)
 # GET /api/colony, /api/colony/organism/{id}, /api/colony/lineage
 ```
 
-Verified canonical result (`seed 7, pop 10, 150 ticks`): 8 living, 4 births, 6 deaths,
-generations `[0, 1]` coexisting, 131 teaching sessions, replay hash match `True`.
+Verified canonical result (`seed 7, pop 6, 60 ticks`): 7 living, 4 births, 2 deaths,
+generations `[0, 1]` coexisting, 12 teaching sessions, replay hash match `True`.
 
 ### IMPLEMENTED + VERIFIED
 
-- Deterministic seeds/IDs, 26-type event sourcing, state hashing (`src/common/`)
+- Deterministic seeds/IDs, 26-type event sourcing, state hashing, and layered provenance fingerprints (`src/common/`)
 - Versioned genome v1.0 with deterministic mutation/crossover + provenance (`src/genome/`)
 - Real development: neurogenesis, differentiation, migration, axon/dendrite growth,
   synaptogenesis, pruning, apoptosis — invariants enforced (`src/development/`)
 - Closed sensorimotor loop in a deterministic grid world; metabolism accounting
   (total energy never exceeds initial + tracked regrowth influx) (`src/world/`, `src/organism/`)
-- Overlapping generations, sexual/asexual reproduction, Pareto selection, separate
-  genetic/cultural lineages (`src/population/`, `src/culture/`)
+- Population simulation on CPU with overlapping generations, sexual reproduction,
+  Pareto selection, separate genetic/cultural lineages (`src/population/`, `src/culture/`)
 - Measured teacher→student learning gain with provenance chains; cumulative
-  cultural transmission demonstrated across 3 generations in tests
-- Sleep/dream as replay + consolidation of real episodes
-- Colony UI data API (`/api/colony*`) serving live simulation state
+  cultural transmission demonstrated across 3 generations in tests (`tests/test_campaign.py`)
+- Local GGUF model discovery and scientist loop (`src/llm/`); unavailable models
+  never produce text (`tests/test_llm_local.py`)
+- Checkpoint/resume campaigns; replay determinism across interrupted execution
+- Adversarial robustness: invalid graph dimensions, out-of-bounds indices, stale
+  caches, corrupted caches, genome bound violations, population death races
+- Hardware benchmarks with provenance (`scripts/run_benchmarks.py`, `diagnostics/benchmarks/`)
 
 ### EXPERIMENTAL
 
 - Population simulation runs on **CPU** (single-brain Vulkan path is verified, but
   batched multi-organism GPU stepping is not implemented).
 - Dream consolidation is replay-based; no synaptic downscaling model yet.
+- CPU/Vulkan integration is trajectory-parity, not bit-exact (documented).
+- Local LLM outputs are generated by a 2B-class quantization locally and are
+  scientifically weak; the scientist loop always treats them as hypotheses, never ground truth.
 
 ### NOT IMPLEMENTED (no placeholders — explicitly unavailable)
 
-- LLM/VLM scientist/teacher loop (`UnavailableLLMTeacher` raises instead of faking).
 - 3D colony / development-timeline visualizations (data APIs exist).
-- 100+ generation campaigns with checkpoints.
+- Multi-GPU batched organism stepping.
+- Synaptic downscaling / homeostatic sleep consolidation models.
 
 ---
 

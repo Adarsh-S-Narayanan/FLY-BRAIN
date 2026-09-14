@@ -1,0 +1,54 @@
+{
+  "campaign": "long_campaign",
+  "seed": 11,
+  "population_start": 6,
+  "generations": 4,
+  "generations_done": 4,
+  "substrate": "synthetic",
+  "ticks_per_gen": 20,
+  "elapsed_sec": 0.52,
+  "curves": [
+    {
+      "generation": 1,
+      "tick": 20,
+      "living": 6,
+      "total": 6,
+      "mean_energy": 1.168,
+      "mean_neurons": 37.33,
+      "teaching_sessions": 0,
+      "population_hash": "4df0b765d66977d249da2ab5fb0bf489faf22446bdf901a9108a38fc12ae9134"
+    },
+    {
+      "generation": 2,
+      "tick": 40,
+      "living": 6,
+      "total": 6,
+      "mean_energy": 0.7586,
+      "mean_neurons": 43.33,
+      "teaching_sessions": 0,
+      "population_hash": "e9e4676aa353203a1151dc2e98697c4fc60abfdc9e404091b3c9c9db8be8e823"
+    },
+    {
+      "generation": 3,
+      "tick": 60,
+      "living": 8,
+      "total": 8,
+      "mean_energy": 0.6613,
+      "mean_neurons": 43.88,
+      "teaching_sessions": 0,
+      "population_hash": "05e17132dd8d8ac48d71d60636c7d167bbfba159bd4019526e105568a4904a46"
+    },
+    {
+      "generation": 4,
+      "tick": 80,
+      "living": 10,
+      "total": 10,
+      "mean_energy": 0.5017,
+      "mean_neurons": 45.7,
+      "teaching_sessions": 21,
+      "population_hash": "195ed13f17746a49003029ef894c0a6b7a143c27253a63f5985e6a1c0e0213cd"
+    }
+  ],
+  "final_population_hash": "195ed13f17746a49003029ef894c0a6b7a143c27253a63f5985e6a1c0e0213cd",
+  "checkpoint": "diagnostics/campaigns\\camp_11_6\\checkpoint.json"
+}

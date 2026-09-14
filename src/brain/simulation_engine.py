@@ -241,15 +241,16 @@ class SimulationEngine:
 
             edges = []
             edge_count = 0
+            # CSR v3: row i stores INCOMING sources; displayed edge = source -> i.
             for i in range(min(128, N)):
                 start = graph.row_offsets[i]
                 end = min(start + 4, graph.row_offsets[i + 1])
                 for k in range(start, end):
-                    tgt = int(graph.col_indices[k])
-                    if tgt < N:
+                    src = int(graph.col_indices[k])
+                    if src < N:
                         edges.append({
-                            "src": i,
-                            "tgt": tgt,
+                            "src": src,
+                            "tgt": i,
                             "w": round(float(graph.weights[k]), 2)
                         })
                         edge_count += 1

@@ -180,7 +180,8 @@ class DevelopmentEngine:
     def grow_projections(self, graph: ConnectomeGraph, dev: DevelopmentState, tick: int,
                          events: Optional[EventLog] = None, organism_id: str = "",
                          generation: int = 0, max_candidates: int = 6) -> int:
-        """Axon+dendrite exploration -> candidate contacts -> synaptogenesis."""
+        """Axon+dendrite exploration -> candidate contacts -> synaptogenesis.
+        CSR CONVENTION v3: axon from i to j appends source i to row j."""
         rng = self._rng(tick, "growth")
         rate = float(self.p.get("synaptogenesis_rate", 0.5))
         adj = _adjacency(graph)
@@ -195,17 +196,18 @@ class DevelopmentEngine:
                 continue
             dists = np.linalg.norm(graph.coordinates - graph.coordinates[i], axis=1)
             order = np.argsort(dists)
-            existing = {t for t, _ in adj[i]}
             added_here = 0
             for j in order[1:]:
                 if added_here >= 2 or created >= max_candidates:
                     break
                 j = int(j)
-                if j == i or not dev.alive[j] or j in existing:
+                if j == i or not dev.alive[j]:
+                    continue
+                existing = {s for s, _ in adj[j]}
+                if i in existing:
                     continue
                 w = float(rng.uniform(0.05, 0.2))
-                adj[i].append((j, w))
-                existing.add(j)
+                adj[j].append((i, w))
                 added_here += 1
                 created += 1
                 if events is not None:

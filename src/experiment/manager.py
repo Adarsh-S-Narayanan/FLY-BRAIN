@@ -5,7 +5,7 @@ import hashlib
 import subprocess
 import numpy as np
 from typing import Dict, Any, Optional, List, Tuple
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 
 from src.connectome.types import GraphMode, ConnectomeGraph
 from src.connectome.loader import get_or_create_circuit, DEFAULT_SOMA_PATH, DEFAULT_CONNECTIONS_PATH
@@ -53,6 +53,7 @@ class ExperimentManifest:
     final_state_hash: str
     metrics: Dict[str, Any]
     snapshot_path: str
+    graph_provenance: Dict[str, Any] = field(default_factory=dict)
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), indent=2)
@@ -175,7 +176,18 @@ class ExperimentManager:
             initial_state_hash=initial_state_hash,
             final_state_hash=final_state_hash,
             metrics=metrics,
-            snapshot_path=snapshot_file
+            snapshot_path=snapshot_file,
+            graph_provenance={
+                "mode": circuit.mode.value,
+                "provenance_status": circuit.provenance_status.value,
+                "csr_convention": circuit.provenance_metadata.get("csr_convention", "unknown"),
+                "selection_strategy": circuit.provenance_metadata.get("selection_strategy", "unknown"),
+                "selection_seed": seed,
+                "sampled_neurons": circuit.num_neurons,
+                "sampled_edges": circuit.num_synapses,
+                "weight_source": circuit.provenance_metadata.get("weight_source", "simulation"),
+                "weight_transform": circuit.provenance_metadata.get("weight_transform", "none"),
+            },
         )
 
         manifest_path = os.path.join(self.exp_dir, f"{experiment_id}.json")
