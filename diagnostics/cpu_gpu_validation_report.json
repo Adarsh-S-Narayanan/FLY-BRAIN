@@ -1,0 +1,178 @@
+{
+  "vulkan_device": {
+    "name": "AMD Radeon(TM) Graphics",
+    "type": 1,
+    "driver_version": 8388961
+  },
+  "tolerances": {
+    "abs_tolerance": 0.0001,
+    "rel_tolerance": 0.001
+  },
+  "total_test_cases": 9,
+  "passed_test_cases": 9,
+  "overall_status": "SUCCESS",
+  "cases": [
+    {
+      "circuit_size": 256,
+      "synapse_count": 1934,
+      "seed": 42,
+      "activation_step": {
+        "max_potential_abs_diff": 2.384185791015625e-07,
+        "max_potential_rel_diff": 3.5350440157344565e-06,
+        "max_activation_abs_diff": 1.1920928955078125e-07,
+        "max_activation_rel_diff": 1.9183323729521362e-07,
+        "passed": true
+      },
+      "plasticity_step": {
+        "max_weight_abs_diff": 5.960464477539063e-08,
+        "max_weight_rel_diff": 1.1889807893794568e-07,
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "circuit_size": 256,
+      "synapse_count": 1934,
+      "seed": 100,
+      "activation_step": {
+        "max_potential_abs_diff": 4.76837158203125e-07,
+        "max_potential_rel_diff": 1.7889598780129745e-07,
+        "max_activation_abs_diff": 1.1920928955078125e-07,
+        "max_activation_rel_diff": 1.6619267739770294e-07,
+        "passed": true
+      },
+      "plasticity_step": {
+        "max_weight_abs_diff": 2.9802322387695312e-08,
+        "max_weight_rel_diff": 1.182137765454172e-07,
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "circuit_size": 256,
+      "synapse_count": 1934,
+      "seed": 2026,
+      "activation_step": {
+        "max_potential_abs_diff": 2.384185791015625e-07,
+        "max_potential_rel_diff": 2.242148440245728e-07,
+        "max_activation_abs_diff": 1.1920928955078125e-07,
+        "max_activation_rel_diff": 1.5980117495928425e-07,
+        "passed": true
+      },
+      "plasticity_step": {
+        "max_weight_abs_diff": 5.960464477539063e-08,
+        "max_weight_rel_diff": 1.188457403600296e-07,
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "circuit_size": 512,
+      "synapse_count": 8470,
+      "seed": 42,
+      "activation_step": {
+        "max_potential_abs_diff": 4.76837158203125e-07,
+        "max_potential_rel_diff": 2.1519289816751552e-07,
+        "max_activation_abs_diff": 1.1920928955078125e-07,
+        "max_activation_rel_diff": 1.841159615878496e-07,
+        "passed": true
+      },
+      "plasticity_step": {
+        "max_weight_abs_diff": 5.960464477539063e-08,
+        "max_weight_rel_diff": 1.1900558405386619e-07,
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "circuit_size": 512,
+      "synapse_count": 8470,
+      "seed": 100,
+      "activation_step": {
+        "max_potential_abs_diff": 9.5367431640625e-07,
+        "max_potential_rel_diff": 2.3274500904335582e-07,
+        "max_activation_abs_diff": 1.1920928955078125e-07,
+        "max_activation_rel_diff": 1.4799407210830395e-07,
+        "passed": true
+      },
+      "plasticity_step": {
+        "max_weight_abs_diff": 5.960464477539063e-08,
+        "max_weight_rel_diff": 1.1906339381084763e-07,
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "circuit_size": 512,
+      "synapse_count": 8470,
+      "seed": 2026,
+      "activation_step": {
+        "max_potential_abs_diff": 9.5367431640625e-07,
+        "max_potential_rel_diff": 2.3467565313239902e-07,
+        "max_activation_abs_diff": 1.1920928955078125e-07,
+        "max_activation_rel_diff": 1.8066282336803852e-07,
+        "passed": true
+      },
+      "plasticity_step": {
+        "max_weight_abs_diff": 5.960464477539063e-08,
+        "max_weight_rel_diff": 1.1863907900533377e-07,
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "circuit_size": 1024,
+      "synapse_count": 27035,
+      "seed": 42,
+      "activation_step": {
+        "max_potential_abs_diff": 9.5367431640625e-07,
+        "max_potential_rel_diff": 2.271044934332167e-07,
+        "max_activation_abs_diff": 1.1920928955078125e-07,
+        "max_activation_rel_diff": 1.544451748713982e-07,
+        "passed": true
+      },
+      "plasticity_step": {
+        "max_weight_abs_diff": 5.960464477539063e-08,
+        "max_weight_rel_diff": 1.1916144870838252e-07,
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "circuit_size": 1024,
+      "synapse_count": 27035,
+      "seed": 100,
+      "activation_step": {
+        "max_potential_abs_diff": 9.5367431640625e-07,
+        "max_potential_rel_diff": 2.0601682138021715e-07,
+        "max_activation_abs_diff": 1.7881393432617188e-07,
+        "max_activation_rel_diff": 1.8362096909640968e-07,
+        "passed": true
+      },
+      "plasticity_step": {
+        "max_weight_abs_diff": 5.960464477539063e-08,
+        "max_weight_rel_diff": 1.189256764178026e-07,
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "circuit_size": 1024,
+      "synapse_count": 27035,
+      "seed": 2026,
+      "activation_step": {
+        "max_potential_abs_diff": 9.5367431640625e-07,
+        "max_potential_rel_diff": 2.347025542803749e-07,
+        "max_activation_abs_diff": 1.7881393432617188e-07,
+        "max_activation_rel_diff": 1.8326774409160862e-07,
+        "passed": true
+      },
+      "plasticity_step": {
+        "max_weight_abs_diff": 5.960464477539063e-08,
+        "max_weight_rel_diff": 1.190742580092774e-07,
+        "passed": true
+      },
+      "passed": true
+    }
+  ]
+}

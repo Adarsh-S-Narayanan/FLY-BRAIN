@@ -1,0 +1,25 @@
+{
+  "python_runtime": {
+    "version": "3.12.13 (main, Jun  2 2026, 22:47:20) [MSC v.1944 64 bit (AMD64)]",
+    "executable": "C:\\Users\\hcsme\\Desktop\\FlyBain LLM Evolve\\.venv\\Scripts\\python.exe"
+  },
+  "vulkan_sdk": {
+    "env_path": "C:\\VulkanSDK\\1.4.357.0",
+    "version": "1.4.357.0",
+    "glslc_path": "C:\\VulkanSDK\\1.4.357.0\\Bin\\glslc.exe"
+  },
+  "git_provenance": {
+    "main_repo_head": "11748583b66b103f7c5b75e09e7176a2ec114ed2",
+    "malecns_head": "daf8e2a9849cc77695b14bb6b9d4c02456cd3b3c"
+  },
+  "biological_source_hashes": {
+    "soma_sides_csv": {
+      "path": "malecns\\data-raw\\2023-27-2 soma_sides.csv",
+      "sha256": "6c1c415ab748ab1cc65c9a274885cfadc880a88eabb17915afe643c105bac84d"
+    }
+  },
+  "target_qwen_model": {
+    "path": "C:\\Users\\hcsme\\.cache\\huggingface\\hub\\models--unsloth--Qwen3-4B-GGUF\\snapshots\\22c9fc8a8c7700b76a1789366280a6a5a1ad1120\\Qwen3-4B-Q4_K_M.gguf",
+    "exists": true
+  }
+}

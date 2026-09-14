@@ -1,0 +1,68 @@
+#version 450
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer RowOffsets {
+    int row_offsets[];
+};
+
+layout(std430, binding = 1) readonly buffer ColIndices {
+    int col_indices[];
+};
+
+layout(std430, binding = 2) readonly buffer Weights {
+    float weights[];
+};
+
+layout(std430, binding = 3) readonly buffer PrevActivations {
+    float prev_activations[];
+};
+
+layout(std430, binding = 4) readonly buffer ExternalInputs {
+    float external_inputs[];
+};
+
+layout(std430, binding = 5) readonly buffer PotentialsIn {
+    float potentials_in[];
+};
+
+layout(std430, binding = 6) writeonly buffer PotentialsOut {
+    float potentials_out[];
+};
+
+layout(std430, binding = 7) writeonly buffer NextActivations {
+    float next_activations[];
+};
+
+layout(std430, binding = 8) readonly buffer Params {
+    int num_neurons;
+    float decay;
+    float threshold;
+    float leak;
+} params;
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= uint(params.num_neurons)) {
+        return;
+    }
+
+    int start_idx = row_offsets[i];
+    int end_idx = row_offsets[i + 1];
+
+    float synaptic_sum = 0.0;
+    for (int k = start_idx; k < end_idx; ++k) {
+        int pre_idx = col_indices[k];
+        synaptic_sum += weights[k] * prev_activations[pre_idx];
+    }
+
+    float v_old = potentials_in[i];
+    float v_new = v_old * params.decay + synaptic_sum + external_inputs[i] - params.leak;
+
+    // Sigmoidal activation function
+    float z = v_new - params.threshold;
+    float a_new = 1.0 / (1.0 + exp(-z));
+
+    potentials_out[i] = v_new;
+    next_activations[i] = a_new;
+}

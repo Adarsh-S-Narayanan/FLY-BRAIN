@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="FlyBrainIntegrationTests" tests="7" failures="0" errors="0" time="2.591">
+  <testcase classname="TestFlyBrainSystem" name="test_01_malecns_biological_source" time="0.370" />
+  <testcase classname="TestFlyBrainSystem" name="test_02_vulkan_compute_and_cpu_reference" time="0.370" />
+  <testcase classname="TestFlyBrainSystem" name="test_03_brain_state_and_plasticity" time="0.370" />
+  <testcase classname="TestFlyBrainSystem" name="test_04_memory_persistence" time="0.370" />
+  <testcase classname="TestFlyBrainSystem" name="test_05_tool_connectors_execution" time="0.370" />
+  <testcase classname="TestFlyBrainSystem" name="test_06_evolution_and_rollback" time="0.370" />
+  <testcase classname="TestFlyBrainSystem" name="test_07_dream_replay" time="0.370" />
+</testsuite>

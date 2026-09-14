@@ -1,0 +1,110 @@
+{
+  "gate_g015_tool_learning": {
+    "skill": "cued_speak",
+    "trials": 15,
+    "initial_score": 0.3696,
+    "final_score": 1.0,
+    "score_improvement": 0.6304,
+    "mean_weight_change": 0.671766,
+    "max_weight_change": 0.817938,
+    "plasticity_occurred": true,
+    "history": [
+      {
+        "trial": 0,
+        "score": 0.3696,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 1,
+        "score": 0.7598,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 2,
+        "score": 0.9461,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 3,
+        "score": 0.9797,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 4,
+        "score": 0.9907,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 5,
+        "score": 0.996,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 6,
+        "score": 0.9985,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 7,
+        "score": 0.9995,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 8,
+        "score": 0.9998,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 9,
+        "score": 0.9999,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 10,
+        "score": 1.0,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 11,
+        "score": 1.0,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 12,
+        "score": 1.0,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 13,
+        "score": 1.0,
+        "selected_tool": "speak",
+        "reward": 1.0
+      },
+      {
+        "trial": 14,
+        "score": 1.0,
+        "selected_tool": "speak",
+        "reward": 1.0
+      }
+    ]
+  },
+  "gate_g016_tool_sequence": {
+    "sequence_name": "forage_and_render_sequence",
+    "steps_completed": 5,
+    "all_success": true
+  },
+  "overall_status": "SUCCESS"
+}

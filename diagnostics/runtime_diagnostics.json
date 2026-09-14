@@ -1,0 +1,27 @@
+{
+  "timestamp": 1789398845.8909984,
+  "vulkan_backend": {
+    "device_name": "AMD Radeon(TM) Graphics",
+    "device_type": 1,
+    "driver_version": 8388961,
+    "step_latency_ms_mean": 4.347,
+    "step_latency_ms_std": 0.353,
+    "status": "OPERATIONAL"
+  },
+  "connectome": {
+    "num_neurons": 512,
+    "num_synapses": 8470,
+    "source_provenance": "malecns/data-raw/2023-27-2 soma_sides.csv"
+  },
+  "subsystems": {
+    "vulkan_compute": "VERIFIED",
+    "cpu_reference": "VERIFIED",
+    "persistent_memory": "VERIFIED",
+    "tool_connectors": "VERIFIED",
+    "speech_synthesis": "VERIFIED",
+    "neural_image_generation": "VERIFIED",
+    "evolution_scheduler": "VERIFIED",
+    "dream_engine": "VERIFIED",
+    "interactive_ui": "VERIFIED"
+  }
+}

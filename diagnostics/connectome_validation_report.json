@@ -1,0 +1,37 @@
+{
+  "source_file": "malecns\\data-raw\\2023-27-2 soma_sides.csv",
+  "total_neuron_records": 125506,
+  "unique_bodies": 125506,
+  "soma_side_distribution": {
+    "L": 62675,
+    "R": 62770,
+    "M": 61
+  },
+  "coordinate_bounds": {
+    "min_nx_ny_nz": [
+      2468.0,
+      4758.0,
+      10154.0
+    ],
+    "max_nx_ny_nz": [
+      93668.0,
+      53742.0,
+      56018.0
+    ],
+    "mean_nx_ny_nz": [
+      48326.722053128935,
+      29500.69807817953,
+      31168.79130878205
+    ]
+  },
+  "tbars_summary": {
+    "total_tbars": 25391204,
+    "max_tbars": 20330,
+    "neurons_with_tbars": 118738
+  },
+  "body_size_summary": {
+    "min": 237,
+    "max": 55553698386,
+    "mean": 313490046.91095245
+  }
+}

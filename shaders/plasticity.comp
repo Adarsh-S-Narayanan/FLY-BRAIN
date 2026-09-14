@@ -1,0 +1,48 @@
+#version 450
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer RowOffsets {
+    int row_offsets[];
+};
+
+layout(std430, binding = 1) readonly buffer ColIndices {
+    int col_indices[];
+};
+
+layout(std430, binding = 2) buffer Weights {
+    float weights[];
+};
+
+layout(std430, binding = 3) readonly buffer PostActivations {
+    float post_activations[];
+};
+
+layout(std430, binding = 4) readonly buffer PreActivations {
+    float pre_activations[];
+};
+
+layout(std430, binding = 5) readonly buffer PlasticityParams {
+    int num_synapses;
+    float learning_rate;
+    float reward;
+    float weight_decay;
+    float min_weight;
+    float max_weight;
+} params;
+
+void main() {
+    uint k = gl_GlobalInvocationID.x;
+    if (k >= uint(params.num_synapses)) {
+        return;
+    }
+
+    int pre_idx = col_indices[k];
+    float a_pre = pre_activations[pre_idx];
+    
+    float w = weights[k];
+    float delta_w = params.learning_rate * params.reward * (a_pre - params.weight_decay * w);
+    
+    float new_w = clamp(w + delta_w, params.min_weight, params.max_weight);
+    weights[k] = new_w;
+}

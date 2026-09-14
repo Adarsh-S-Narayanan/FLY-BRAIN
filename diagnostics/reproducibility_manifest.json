@@ -1,0 +1,23 @@
+{
+  "seed_baseline": 42,
+  "platform": {
+    "os": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD"
+  },
+  "git": {
+    "main_repo_head": "11748583b66b103f7c5b75e09e7176a2ec114ed2",
+    "malecns_head": "daf8e2a9849cc77695b14bb6b9d4c02456cd3b3c"
+  },
+  "data_hashes": {
+    "malecns_soma": "6c1c415ab748ab1cc65c9a274885cfadc880a88eabb17915afe643c105bac84d"
+  },
+  "precision_tolerances": {
+    "vulkan_vs_cpu_float32_abs_tol": 0.0001,
+    "vulkan_vs_cpu_float32_rel_tol": 0.001
+  },
+  "deterministic_flags": {
+    "torch_deterministic": true,
+    "numpy_seed": 42
+  }
+}
