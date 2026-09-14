@@ -197,18 +197,25 @@ class PersistentMemoryManager:
     # --- Dream & Replay Operations ---
     def record_dream(
         self,
-        seed: int,
-        base_episode_id: int,
-        simulated_action: str,
-        counterfactual_reward: float,
-        insight: str
+        seed: int = 42,
+        base_episode_id: int = 1,
+        simulated_action: str = "explore",
+        counterfactual_reward: float = 0.5,
+        insight: str = "",
+        **kwargs
     ) -> int:
+        ep_id = kwargs.get("episode_id", base_episode_id)
+        reward_val = kwargs.get("hypothetical_reward", counterfactual_reward)
+        insight_str = kwargs.get("consolidation_insight", insight)
+        seed_val = kwargs.get("seed", seed)
+        action_val = kwargs.get("simulated_action", simulated_action)
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
             INSERT INTO dream_memory (timestamp, seed, base_episode_id, simulated_action, counterfactual_reward, insight)
             VALUES (?, ?, ?, ?, ?, ?)
-            """, (time.time(), seed, base_episode_id, simulated_action, counterfactual_reward, insight))
+            """, (time.time(), seed_val, ep_id, action_val, reward_val, insight_str))
             conn.commit()
             return cursor.lastrowid
 

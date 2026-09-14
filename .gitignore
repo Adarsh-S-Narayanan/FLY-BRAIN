@@ -4,3 +4,8 @@ __pycache__/
 .pytest_cache/
 *.tmp
 diagnostics/connectome_cache/
+diagnostics/snapshots/
+*.db
+*.db-journal
+*.npz
+*.log

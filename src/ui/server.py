@@ -1,49 +1,50 @@
 import os
 import sys
 import json
+import time
 import asyncio
+import platform
+import psutil
 import numpy as np
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 
-from src.connectome.loader import get_or_create_circuit
-from src.brain.runtime import BrainRuntime
-from src.memory.persistence import PersistentMemoryManager
-from src.trainer.curriculum import CurriculumTrainer
-from src.evolution.scheduler import EvolutionScheduler
-from src.dream.engine import DreamEngine
+from src.connectome.types import GraphMode, ProvenanceStatus
+from src.brain.simulation_engine import SimulationEngine
+from src.experiment.manager import ExperimentManager, get_file_sha256, get_git_commit
 
-app = FastAPI(title="FlyBrain Autonomous Organism Dashboard")
+app = FastAPI(title="FlyBrain Lab — Biological Connectome Research Platform")
 
-# Global runtime state
-STATE = {
-    "circuit": None,
-    "brain": None,
-    "memory": None,
-    "trainer": None,
-    "evolution": None,
-    "dream_engine": None,
-    "is_running": False
-}
+# Central Simulation Engine instance
+SIMULATION_ENGINE: Optional[SimulationEngine] = None
+EXPERIMENT_MGR = ExperimentManager()
 
-def init_app_state():
-    if STATE["circuit"] is None:
-        circuit = get_or_create_circuit(512, cache_name="flybrain_ui_512.npz")
-        STATE["circuit"] = circuit
-        memory = PersistentMemoryManager(db_path="diagnostics/flybrain_live_memory.db")
-        STATE["memory"] = memory
-        brain = BrainRuntime(circuit, use_gpu=True, seed=42)
-        STATE["brain"] = brain
-        STATE["trainer"] = CurriculumTrainer(brain, memory)
-        STATE["evolution"] = EvolutionScheduler(circuit, history_file="diagnostics/evolution_history.json")
-        STATE["dream_engine"] = DreamEngine(brain, memory)
+def get_engine() -> SimulationEngine:
+    global SIMULATION_ENGINE
+    if SIMULATION_ENGINE is None:
+        SIMULATION_ENGINE = SimulationEngine(
+            circuit_size=512,
+            graph_mode=GraphMode.REAL,
+            use_gpu=True,
+            seed=42
+        )
+    return SIMULATION_ENGINE
 
-init_app_state()
+@app.on_event("startup")
+async def startup_event():
+    engine = get_engine()
+    engine.set_event_loop(asyncio.get_event_loop())
 
-# Serve static directory
+@app.on_event("shutdown")
+def shutdown_event():
+    global SIMULATION_ENGINE
+    if SIMULATION_ENGINE:
+        SIMULATION_ENGINE.close()
+
+# Static directories
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs("visual_evidence", exist_ok=True)
@@ -54,144 +55,237 @@ def get_index():
     index_path = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return HTMLResponse("<h1>FlyBrain Dashboard loading...</h1>")
+    return HTMLResponse("<h1>FlyBrain Lab is initializing...</h1>")
+
+@app.get("/api/health")
+def get_health():
+    engine = get_engine()
+    return {
+        "status": "HEALTHY",
+        "timestamp": time.time(),
+        "graph_mode": engine.circuit.mode.value,
+        "provenance_status": engine.circuit.provenance_status.value,
+        "backend": "vulkan_gpu" if (engine.brain.gpu_engine and engine.brain.use_gpu) else "cpu_reference",
+        "device_name": engine.brain.gpu_engine.device_name if engine.brain.gpu_engine else "CPU Reference Mode"
+    }
 
 @app.get("/api/state")
 def get_state():
-    brain: BrainRuntime = STATE["brain"]
-    return {
-        "step": brain.state.step_count,
-        "total_spikes": brain.state.total_spikes,
-        "mean_activation": float(np.mean(brain.state.activations)),
-        "max_activation": float(np.max(brain.state.activations)),
-        "prediction_error": brain.state.prediction_error,
-        "current_reward": brain.state.current_reward,
-        "predicted_reward": brain.state.predicted_reward,
-        "active_goal": brain.state.active_goal,
-        "tool_associations": brain.state.tool_associations,
-        "drives": {
-            "energy": brain.state.drives.energy,
-            "curiosity": brain.state.drives.curiosity,
-            "social": brain.state.drives.social,
-            "integrity": brain.state.drives.integrity
-        },
-        "backend": "vulkan_gpu" if (brain.gpu_engine and brain.use_gpu) else "cpu_reference",
-        "gpu_device": brain.gpu_engine.device_name if brain.gpu_engine else "N/A",
-        "num_neurons": brain.graph.num_neurons,
-        "num_synapses": brain.graph.num_synapses
-    }
+    engine = get_engine()
+    return engine.get_full_state()
+
+@app.get("/api/telemetry")
+def get_telemetry():
+    engine = get_engine()
+    return engine.get_telemetry_payload()
 
 @app.get("/api/connectome")
-def get_connectome():
-    brain: BrainRuntime = STATE["brain"]
-    graph = brain.graph
-    
-    # Send sampled nodes with coordinates and live activation
-    nodes = []
-    coords_min = graph.coordinates.min(axis=0)
-    coords_max = graph.coordinates.max(axis=0)
-    norm_coords = (graph.coordinates - coords_min) / (coords_max - coords_min + 1e-5)
+def get_connectome(max_nodes: int = 512, max_edges: int = 384):
+    engine = get_engine()
+    return engine.get_connectome_3d_view(max_nodes=max_nodes, max_edges=max_edges)
 
-    for i in range(min(512, graph.num_neurons)):
-        nodes.append({
-            "id": int(graph.neuron_ids[i]),
-            "idx": i,
-            "pos": [round(float(c), 3) for c in norm_coords[i]],
-            "side": graph.sides[i],
-            "tbars": int(graph.tbars[i]),
-            "act": round(float(brain.state.activations[i]), 3)
-        })
+@app.post("/api/simulation/start")
+def post_start():
+    engine = get_engine()
+    engine.start()
+    return {"status": "STARTED", "is_running": True}
 
-    # Sample top active connections
-    edges = []
-    for i in range(min(128, graph.num_neurons)):
-        start = graph.row_offsets[i]
-        end = min(start + 4, graph.row_offsets[i+1])
-        for k in range(start, end):
-            target = int(graph.col_indices[k])
-            if target < min(512, graph.num_neurons):
-                edges.append({
-                    "src": i,
-                    "tgt": target,
-                    "w": round(float(graph.weights[k]), 2)
-                })
+@app.post("/api/simulation/pause")
+def post_pause():
+    engine = get_engine()
+    engine.pause()
+    return {"status": "PAUSED", "is_running": False}
 
-    return {"nodes": nodes, "edges": edges}
+class StepRequest(BaseModel):
+    steps: int = 1
+    sensory_inputs: Optional[Dict[str, List[float]]] = None
+    reward: float = 0.0
 
-@app.post("/api/step")
-def post_step(steps: int = 1):
-    brain: BrainRuntime = STATE["brain"]
-    results = []
-    for _ in range(steps):
-        # Simulate slight sensory stimulation
-        sensory = {"visual": np.random.uniform(0.1, 0.3, 64).astype(np.float32)}
-        out = brain.step(sensory_inputs=sensory, reward=0.1)
-        results.append(out)
-    return results[-1] if results else {}
-
-@app.post("/api/train")
-def post_train(tool: str = "speak"):
-    trainer: CurriculumTrainer = STATE["trainer"]
-    res = trainer.train_tool_selection_skill(target_tool=tool, num_trials=5)
+@app.post("/api/simulation/step")
+def post_step(req: StepRequest):
+    engine = get_engine()
+    s_in = None
+    if req.sensory_inputs:
+        s_in = {k: np.array(v, dtype=np.float32) for k, v in req.sensory_inputs.items()}
+    res = engine.step_single(n_steps=req.steps, sensory_inputs=s_in, reward=req.reward)
     return res
 
-@app.post("/api/dream")
-def post_dream():
-    dream_engine: DreamEngine = STATE["dream_engine"]
-    res = dream_engine.run_dream_cycle(mode="exploratory", seed=42, num_episodes_to_replay=2)
-    return res
+class ResetRequest(BaseModel):
+    circuit_size: int = 512
+    graph_mode: str = "REAL"
+    seed: int = 42
 
-@app.post("/api/evolve")
-def post_evolve():
-    evo: EvolutionScheduler = STATE["evolution"]
-    res = evo.run_generation(num_candidates=4)
-    return res
+@app.post("/api/simulation/reset")
+def post_reset(req: ResetRequest):
+    global SIMULATION_ENGINE
+    if SIMULATION_ENGINE:
+        SIMULATION_ENGINE.close()
+    mode = GraphMode(req.graph_mode)
+    SIMULATION_ENGINE = SimulationEngine(
+        circuit_size=req.circuit_size,
+        graph_mode=mode,
+        use_gpu=True,
+        seed=req.seed
+    )
+    SIMULATION_ENGINE.set_event_loop(asyncio.get_event_loop())
+    return {"status": "RESET_COMPLETE", "graph_mode": mode.value, "neurons": req.circuit_size}
 
 @app.get("/api/memory")
-def get_memory():
-    mem: PersistentMemoryManager = STATE["memory"]
+def get_memory(query: Optional[str] = None, limit: int = 10):
+    engine = get_engine()
+    mem = engine.memory
+    episodes = mem.get_recent_episodes(limit=limit)
+    skills = mem.get_skills()
+    dreams = mem.get_recent_dreams(limit=limit)
+    
+    if query:
+        # Filter episodes containing query
+        episodes = [e for e in episodes if query.lower() in json.dumps(e).lower()]
+        
     return {
         "working": mem.working.get_all_active(),
-        "episodes": mem.get_recent_episodes(limit=8),
-        "skills": mem.get_skills(),
-        "dreams": mem.get_recent_dreams(limit=5)
+        "episodes": episodes,
+        "skills": skills,
+        "dreams": dreams
     }
+
+@app.get("/api/evolution/lineage")
+def get_evolution_lineage():
+    engine = get_engine()
+    return engine.evolution.get_lineage()
+
+@app.post("/api/evolution/generation")
+def post_evolution_generation(num_candidates: int = 4):
+    engine = get_engine()
+    with engine.lock:
+        res = engine.evolution.run_generation(num_candidates=num_candidates)
+    return res
+
+@app.get("/api/dreams")
+def get_dreams(limit: int = 10):
+    engine = get_engine()
+    return engine.memory.get_recent_dreams(limit=limit)
+
+@app.post("/api/dreams/replay")
+def post_dream_replay(mode: str = "deterministic", count: int = 2):
+    engine = get_engine()
+    with engine.lock:
+        res = engine.dream_engine.run_dream_cycle(mode=mode, seed=int(time.time()), num_episodes_to_replay=count)
+    return res
 
 @app.get("/api/tools")
 def get_tools():
-    trainer: CurriculumTrainer = STATE["trainer"]
-    return trainer.registry.list_tools()
+    engine = get_engine()
+    return engine.trainer.registry.list_tools()
+
+class ToolExecRequest(BaseModel):
+    tool_name: str
+    params: Dict[str, Any] = {}
 
 @app.post("/api/tools/execute")
-def execute_tool(tool_name: str, params: Dict[str, Any] = None):
-    trainer: CurriculumTrainer = STATE["trainer"]
-    return trainer.registry.execute(tool_name, params or {})
+def post_execute_tool(req: ToolExecRequest):
+    engine = get_engine()
+    return engine.trainer.registry.execute(req.tool_name, req.params)
+
+@app.get("/api/experiments")
+def list_experiments():
+    exp_dir = EXPERIMENT_MGR.exp_dir
+    files = [f for f in os.listdir(exp_dir) if f.endswith(".json")]
+    manifests = []
+    for f in sorted(files, reverse=True)[:20]:
+        try:
+            with open(os.path.join(exp_dir, f), "r", encoding="utf-8") as fp:
+                manifests.append(json.load(fp))
+        except Exception:
+            pass
+    return manifests
+
+class RunExpRequest(BaseModel):
+    experiment_id: Optional[str] = None
+    seed: int = 42
+    graph_mode: str = "REAL"
+    neuron_scale: int = 256
+    duration_steps: int = 50
+
+@app.post("/api/experiments/run")
+def post_run_experiment(req: RunExpRequest):
+    mode = GraphMode(req.graph_mode)
+    manifest = EXPERIMENT_MGR.run_experiment(
+        experiment_id=req.experiment_id,
+        seed=req.seed,
+        graph_mode=mode,
+        neuron_scale=req.neuron_scale,
+        duration_steps=req.duration_steps
+    )
+    return asdict(manifest)
+
+@app.post("/api/experiments/verify")
+def post_verify_experiment(experiment_id: str):
+    res = EXPERIMENT_MGR.verify_experiment(experiment_id)
+    return res
+
+@app.get("/api/diagnostics")
+def get_diagnostics():
+    engine = get_engine()
+    brain = engine.brain
+    gpu_diag = brain.gpu_engine.get_diagnostics() if brain.gpu_engine else {
+        "status": "UNAVAILABLE",
+        "device_name": "CPU Reference Mode (Headless / No Vulkan Device)"
+    }
+
+    vm = psutil.virtual_memory()
+    return {
+        "system": {
+            "os": platform.platform(),
+            "python_version": platform.python_version(),
+            "cpu": platform.processor(),
+            "cpu_cores": psutil.cpu_count(logical=True),
+            "ram_total_gb": round(vm.total / (1024**3), 2),
+            "ram_available_gb": round(vm.available / (1024**3), 2),
+            "ram_percent": vm.percent,
+            "git_commit": get_git_commit()
+        },
+        "vulkan": gpu_diag,
+        "dataset_provenance": {
+            "dataset_name": "Janelia MaleCNS",
+            "version": "male-cns:v1.0",
+            "soma_sha256": get_file_sha256(os.path.join("malecns", "data-raw", "2023-27-2 soma_sides.csv")),
+            "connections_sha256": get_file_sha256(os.path.join("malecns", "data-raw", "malecns_v1_0_connections.csv")),
+            "brain_shader_sha256": get_file_sha256(os.path.join("shaders", "brain_step.spv")),
+            "plasticity_shader_sha256": get_file_sha256(os.path.join("shaders", "plasticity.spv"))
+        },
+        "runtime": {
+            "is_running": engine.is_running,
+            "circuit_neurons": engine.circuit.num_neurons,
+            "circuit_synapses": engine.circuit.num_synapses,
+            "graph_mode": engine.circuit.mode.value,
+            "graph_hash": engine.circuit.graph_hash,
+            "step_count": brain.state.step_count,
+            "total_spikes": brain.state.total_spikes,
+            "last_step_latency_ms": engine.last_step_time_ms
+        }
+    }
 
 @app.websocket("/ws/telemetry")
 async def websocket_telemetry(ws: WebSocket):
+    """
+    Real-time streaming telemetry WebSocket.
+    Clients receive updates from the SimulationEngine broadcast queue.
+    Clients do NOT independently advance or step the brain.
+    """
     await ws.accept()
-    brain: BrainRuntime = STATE["brain"]
+    engine = get_engine()
+    queue = asyncio.Queue(maxsize=10)
+    engine.register_telemetry_queue(queue)
     try:
+        # Send initial state immediately
+        await ws.send_json(engine.get_telemetry_payload())
         while True:
-            # Step brain in background if active
-            sensory = {"visual": np.random.uniform(0.1, 0.3, 64).astype(np.float32)}
-            brain.step(sensory_inputs=sensory, reward=0.05)
-            
-            payload = {
-                "step": brain.state.step_count,
-                "spikes": int(np.sum(brain.state.activations > 0.5)),
-                "mean_act": round(float(np.mean(brain.state.activations)), 3),
-                "prediction_error": round(brain.state.prediction_error, 3),
-                "energy": round(brain.state.drives.energy, 3),
-                "curiosity": round(brain.state.drives.curiosity, 3),
-                "social": round(brain.state.drives.social, 3),
-                "tool_scores": {k: round(v, 3) for k, v in brain.state.tool_associations.items()},
-                "active_neurons": [
-                    {"idx": int(i), "act": round(float(brain.state.activations[i]), 2)}
-                    for i in np.argsort(brain.state.activations)[-10:]
-                ]
-            }
+            payload = await queue.get()
             await ws.send_json(payload)
-            await asyncio.sleep(0.1)
     except WebSocketDisconnect:
         pass
+    except Exception:
+        pass
+    finally:
+        engine.unregister_telemetry_queue(queue)

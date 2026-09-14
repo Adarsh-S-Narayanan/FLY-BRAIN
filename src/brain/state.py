@@ -24,7 +24,9 @@ class HomeostaticDrives:
 class BrainState:
     num_neurons: int
     membrane_potentials: np.ndarray    # [N] float32
-    activations: np.ndarray            # [N] float32
+    spikes: np.ndarray                 # [N] float32 (0.0 or 1.0)
+    refractory_steps: np.ndarray       # [N] int32
+    activations: np.ndarray            # [N] float32 (filtered rate / display)
     attention: np.ndarray              # [N] float32 attention focus
     prediction_error: float = 0.0
     predicted_reward: float = 0.0
@@ -40,12 +42,16 @@ class BrainState:
     @classmethod
     def create_initial(cls, num_neurons: int, seed: int = 42) -> 'BrainState':
         rng = np.random.RandomState(seed)
-        pot = rng.uniform(-0.1, 0.1, num_neurons).astype(np.float32)
+        pot = rng.uniform(0.0, 0.2, num_neurons).astype(np.float32)
+        spikes = np.zeros(num_neurons, dtype=np.float32)
+        ref = np.zeros(num_neurons, dtype=np.int32)
         act = np.zeros(num_neurons, dtype=np.float32)
         att = np.ones(num_neurons, dtype=np.float32) / num_neurons
         return cls(
             num_neurons=num_neurons,
             membrane_potentials=pot,
+            spikes=spikes,
+            refractory_steps=ref,
             activations=act,
             attention=att,
             goal_embedding=np.zeros(16, dtype=np.float32)
@@ -68,5 +74,6 @@ class BrainState:
             "tool_associations": dict(self.tool_associations),
             "active_memory_refs": list(self.active_memory_refs),
             "mean_activation": float(np.mean(self.activations)),
-            "max_activation": float(np.max(self.activations))
+            "max_activation": float(np.max(self.activations)),
+            "active_spikes_count": int(np.sum(self.spikes > 0.5))
         }

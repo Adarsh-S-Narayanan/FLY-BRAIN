@@ -1,0 +1,33 @@
+{
+  "experiment_id": "exp_real_128_20260914_200538",
+  "timestamp": 1789409138.8694386,
+  "seed": 42,
+  "graph_mode": "REAL",
+  "neuron_scale": 128,
+  "duration_steps": 10,
+  "dataset_version": "male-cns:v1.0",
+  "soma_file_hash": "6c1c415ab748ab1cc65c9a274885cfadc880a88eabb17915afe643c105bac84d",
+  "connections_file_hash": "039e929b4ccc776f13a8d17eb9833d85de9454b8f43a0a0de34fdabb7ca2a668",
+  "brain_shader_hash": "85427c36a5de1f638280fcffcd7295c864d8f78fee01fd5990fe26afaa9a3b65",
+  "plasticity_shader_hash": "9653708b6d75e07d1ec6d6fe4030c228d3003ca2d95f68fdcd95bb8a04bd47c1",
+  "git_commit": "bb47a552e5be6e9b9ea7b9202c0037fb4df5b8e9",
+  "hardware_device": "AMD Radeon(TM) Graphics",
+  "backend": "vulkan_gpu",
+  "graph_hash": "a44ca2b64d79d67d8e068ea84c140f57a2287f485e405129da0095dae1db60d1",
+  "initial_state_hash": "c2179e617946f560b41f1bd1a26a634dd7932e89fb6f12498133cae603ad477d",
+  "final_state_hash": "457a92e3937397704e1e9179710a8ecd5d75ad5360281140d6f49251a96c4aeb",
+  "metrics": {
+    "total_steps": 10,
+    "total_spikes": 50,
+    "mean_spikes_per_step": 5.0,
+    "final_energy": 0.9899,
+    "final_curiosity": 0.7518,
+    "final_prediction_error": 0.1083,
+    "mean_step_latency_ms": 0.609,
+    "median_step_latency_ms": 0.507,
+    "min_step_latency_ms": 0.464,
+    "max_step_latency_ms": 1.527,
+    "throughput_steps_per_sec": 1642.6
+  },
+  "snapshot_path": "diagnostics\\snapshots\\exp_real_128_20260914_200538_final.npz"
+}

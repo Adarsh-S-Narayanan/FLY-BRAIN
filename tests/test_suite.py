@@ -81,7 +81,7 @@ class TestFlyBrainSystem(unittest.TestCase):
         brain = BrainRuntime(circuit, use_gpu=False, seed=42)
         
         initial_weights = circuit.weights.copy()
-        step1 = brain.step(sensory_inputs={"visual": np.full(64, 0.5, dtype=np.float32)}, reward=1.0)
+        step1 = brain.step(sensory_inputs={"visual": np.full(64, 1.5, dtype=np.float32)}, reward=1.0)
         
         self.assertEqual(step1["step"], 1)
         self.assertGreater(step1["spikes"], 0)
@@ -208,8 +208,90 @@ class TestFlyBrainSystem(unittest.TestCase):
 
         dreams = dreamer.run_dream_cycle(mode="deterministic", seed=42, num_episodes_to_replay=1)
         self.assertEqual(len(dreams), 1)
-        self.assertIn("Simulated", dreams[0]["insight"])
+        self.assertIn("simulation", dreams[0]["insight"].lower())
         brain.cleanup()
+
+    def test_08_lif_refractory_and_reset(self):
+        """Test classical LIF dynamics: membrane decay, spike firing, reset clamp, and refractory inhibition."""
+        from src.compute.cpu_reference import cpu_lif_step
+        num_n = 2
+        row_offsets = np.array([0, 0, 0], dtype=np.int32)
+        col_indices = np.array([], dtype=np.int32)
+        weights = np.array([], dtype=np.float32)
+        prev_spk = np.zeros(num_n, dtype=np.float32)
+        ext_in = np.array([0.0, 50.0], dtype=np.float32)
+        pot_in = np.array([-70.0, -70.0], dtype=np.float32)
+        ref_in = np.zeros(num_n, dtype=np.int32)
+
+        # Step 1: Neuron 1 fires
+        p_out, s_out, r_out = cpu_lif_step(
+            row_offsets, col_indices, weights, prev_spk, ext_in, pot_in, ref_in,
+            decay=0.95, threshold=-50.0, v_reset=-70.0, v_rest=-70.0, t_ref=2
+        )
+        self.assertEqual(s_out[1], 1.0, "Neuron 1 must fire spike.")
+        self.assertEqual(p_out[1], -70.0, "Membrane potential must clamp to reset.")
+        self.assertEqual(r_out[1], 2, "Refractory counter must initialize to t_ref.")
+
+        # Step 2: During refractory period, strong external input must be suppressed
+        p_out2, s_out2, r_out2 = cpu_lif_step(
+            row_offsets, col_indices, weights, prev_spk, ext_in, p_out, r_out,
+            decay=0.95, threshold=-50.0, v_reset=-70.0, v_rest=-70.0, t_ref=2
+        )
+        self.assertEqual(s_out2[1], 0.0, "Spike must be suppressed during refractory period.")
+        self.assertEqual(p_out2[1], -70.0, "Potential must remain clamped at reset.")
+        self.assertEqual(r_out2[1], 1, "Refractory counter must decrement.")
+
+    def test_09_connectome_contract_separation(self):
+        """Test explicit separation of REAL, SPATIAL_SURROGATE, and SYNTHETIC_TEST graph modes."""
+        from src.connectome.types import GraphMode, ProvenanceStatus
+        real_g = get_or_create_circuit(128, mode=GraphMode.REAL, seed=42)
+        self.assertEqual(real_g.provenance_status, ProvenanceStatus.VERIFIED)
+        self.assertTrue(real_g.validate_invariants())
+
+        surr_g = get_or_create_circuit(128, mode=GraphMode.SPATIAL_SURROGATE, seed=42)
+        self.assertEqual(surr_g.provenance_status, ProvenanceStatus.SURROGATE)
+        self.assertTrue(surr_g.validate_invariants())
+
+        synth_g = get_or_create_circuit(128, mode=GraphMode.SYNTHETIC_TEST, seed=42)
+        self.assertEqual(synth_g.provenance_status, ProvenanceStatus.EXPERIMENTAL)
+        self.assertTrue(synth_g.validate_invariants())
+
+        # Ensure hashes are distinct
+        self.assertNotEqual(real_g.graph_hash, synth_g.graph_hash)
+
+    def test_10_deterministic_experiment_replication(self):
+        """Test bit-exact deterministic reproduction of research experiments."""
+        from src.experiment.manager import ExperimentManager
+        from src.connectome.types import GraphMode
+        exp_mgr = ExperimentManager()
+        manifest = exp_mgr.run_experiment(
+            experiment_id="test_suite_det_exp",
+            seed=42,
+            graph_mode=GraphMode.SYNTHETIC_TEST,
+            neuron_scale=64,
+            duration_steps=15
+        )
+        ver = exp_mgr.verify_experiment("test_suite_det_exp")
+        self.assertTrue(ver["deterministic_match"])
+        self.assertEqual(ver["status"], "PASS")
+
+    def test_11_single_simulation_engine_telemetry(self):
+        """Test SimulationEngine background execution, thread safety, and telemetry isolation."""
+        from src.brain.simulation_engine import SimulationEngine
+        from src.connectome.types import GraphMode
+        engine = SimulationEngine(circuit_size=128, graph_mode=GraphMode.SYNTHETIC_TEST)
+        engine.start()
+        time.sleep(0.3)
+        self.assertTrue(engine.is_running)
+
+        telem = engine.get_latest_telemetry()
+        self.assertGreater(telem["step"], 0)
+        self.assertIn("spikes", telem)
+        self.assertIn("drives", telem)
+
+        engine.pause()
+        self.assertFalse(engine.is_running)
+        engine.cleanup()
 
 def write_junit_xml(results, total_time, out_path="diagnostics/test_results.xml"):
     os.makedirs(os.path.dirname(out_path), exist_ok=True)

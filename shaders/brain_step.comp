@@ -14,8 +14,8 @@ layout(std430, binding = 2) readonly buffer Weights {
     float weights[];
 };
 
-layout(std430, binding = 3) readonly buffer PrevActivations {
-    float prev_activations[];
+layout(std430, binding = 3) readonly buffer PrevSpikes {
+    float prev_spikes[];
 };
 
 layout(std430, binding = 4) readonly buffer ExternalInputs {
@@ -26,19 +26,29 @@ layout(std430, binding = 5) readonly buffer PotentialsIn {
     float potentials_in[];
 };
 
-layout(std430, binding = 6) writeonly buffer PotentialsOut {
+layout(std430, binding = 6) readonly buffer RefractoryIn {
+    int refractory_in[];
+};
+
+layout(std430, binding = 7) writeonly buffer PotentialsOut {
     float potentials_out[];
 };
 
-layout(std430, binding = 7) writeonly buffer NextActivations {
-    float next_activations[];
+layout(std430, binding = 8) writeonly buffer SpikesOut {
+    float spikes_out[];
 };
 
-layout(std430, binding = 8) readonly buffer Params {
+layout(std430, binding = 9) writeonly buffer RefractoryOut {
+    int refractory_out[];
+};
+
+layout(std430, binding = 10) readonly buffer Params {
     int num_neurons;
     float decay;
     float threshold;
-    float leak;
+    float v_reset;
+    float v_rest;
+    int t_ref;
 } params;
 
 void main() {
@@ -47,22 +57,38 @@ void main() {
         return;
     }
 
+    int ref_count = refractory_in[i];
+    if (ref_count > 0) {
+        // Absolute refractory period: clamp to reset potential, suppress spike
+        refractory_out[i] = ref_count - 1;
+        potentials_out[i] = params.v_reset;
+        spikes_out[i] = 0.0;
+        return;
+    }
+
+    // Accumulate synaptic current from presynaptic spikes
     int start_idx = row_offsets[i];
     int end_idx = row_offsets[i + 1];
 
     float synaptic_sum = 0.0;
     for (int k = start_idx; k < end_idx; ++k) {
         int pre_idx = col_indices[k];
-        synaptic_sum += weights[k] * prev_activations[pre_idx];
+        synaptic_sum += weights[k] * prev_spikes[pre_idx];
     }
 
     float v_old = potentials_in[i];
-    float v_new = v_old * params.decay + synaptic_sum + external_inputs[i] - params.leak;
+    // Leaky integration towards resting potential
+    float v_cand = params.v_rest + (v_old - params.v_rest) * params.decay + synaptic_sum + external_inputs[i];
 
-    // Sigmoidal activation function
-    float z = v_new - params.threshold;
-    float a_new = 1.0 / (1.0 + exp(-z));
-
-    potentials_out[i] = v_new;
-    next_activations[i] = a_new;
+    if (v_cand >= params.threshold) {
+        // Threshold crossed: fire action potential (spike), reset membrane, initiate refractory period
+        spikes_out[i] = 1.0;
+        potentials_out[i] = params.v_reset;
+        refractory_out[i] = params.t_ref;
+    } else {
+        // Subthreshold: decay potential, no spike, clamp to floor
+        spikes_out[i] = 0.0;
+        potentials_out[i] = max(v_cand, params.v_reset - 1.0);
+        refractory_out[i] = 0;
+    }
 }

@@ -14,162 +14,162 @@
   "cases": [
     {
       "circuit_size": 256,
-      "synapse_count": 1934,
+      "synapse_count": 1452,
       "seed": 42,
       "activation_step": {
-        "max_potential_abs_diff": 2.384185791015625e-07,
-        "max_potential_rel_diff": 3.5350440157344565e-06,
-        "max_activation_abs_diff": 1.1920928955078125e-07,
-        "max_activation_rel_diff": 1.9183323729521362e-07,
+        "max_potential_abs_diff": 5.960464477539063e-08,
+        "max_potential_rel_diff": 1.9083189783941634e-07,
+        "max_activation_abs_diff": 0.0,
+        "max_activation_rel_diff": 0.0,
         "passed": true
       },
       "plasticity_step": {
         "max_weight_abs_diff": 5.960464477539063e-08,
-        "max_weight_rel_diff": 1.1889807893794568e-07,
+        "max_weight_rel_diff": 1.1636148400384627e-07,
         "passed": true
       },
       "passed": true
     },
     {
       "circuit_size": 256,
-      "synapse_count": 1934,
+      "synapse_count": 1452,
       "seed": 100,
       "activation_step": {
-        "max_potential_abs_diff": 4.76837158203125e-07,
-        "max_potential_rel_diff": 1.7889598780129745e-07,
-        "max_activation_abs_diff": 1.1920928955078125e-07,
-        "max_activation_rel_diff": 1.6619267739770294e-07,
+        "max_potential_abs_diff": 5.960464477539063e-08,
+        "max_potential_rel_diff": 3.898586555806105e-07,
+        "max_activation_abs_diff": 0.0,
+        "max_activation_rel_diff": 0.0,
         "passed": true
       },
       "plasticity_step": {
         "max_weight_abs_diff": 2.9802322387695312e-08,
-        "max_weight_rel_diff": 1.182137765454172e-07,
+        "max_weight_rel_diff": 1.1869587268620307e-07,
         "passed": true
       },
       "passed": true
     },
     {
       "circuit_size": 256,
-      "synapse_count": 1934,
+      "synapse_count": 1452,
       "seed": 2026,
       "activation_step": {
-        "max_potential_abs_diff": 2.384185791015625e-07,
-        "max_potential_rel_diff": 2.242148440245728e-07,
-        "max_activation_abs_diff": 1.1920928955078125e-07,
-        "max_activation_rel_diff": 1.5980117495928425e-07,
+        "max_potential_abs_diff": 1.1920928955078125e-07,
+        "max_potential_rel_diff": 4.7353924514936807e-07,
+        "max_activation_abs_diff": 0.0,
+        "max_activation_rel_diff": 0.0,
         "passed": true
       },
       "plasticity_step": {
-        "max_weight_abs_diff": 5.960464477539063e-08,
-        "max_weight_rel_diff": 1.188457403600296e-07,
+        "max_weight_abs_diff": 2.9802322387695312e-08,
+        "max_weight_rel_diff": 1.1866062976650937e-07,
         "passed": true
       },
       "passed": true
     },
     {
       "circuit_size": 512,
-      "synapse_count": 8470,
+      "synapse_count": 6558,
       "seed": 42,
       "activation_step": {
-        "max_potential_abs_diff": 4.76837158203125e-07,
-        "max_potential_rel_diff": 2.1519289816751552e-07,
-        "max_activation_abs_diff": 1.1920928955078125e-07,
-        "max_activation_rel_diff": 1.841159615878496e-07,
+        "max_potential_abs_diff": 1.1920928955078125e-07,
+        "max_potential_rel_diff": 2.203482125651135e-07,
+        "max_activation_abs_diff": 0.0,
+        "max_activation_rel_diff": 0.0,
         "passed": true
       },
       "plasticity_step": {
         "max_weight_abs_diff": 5.960464477539063e-08,
-        "max_weight_rel_diff": 1.1900558405386619e-07,
+        "max_weight_rel_diff": 1.1806555022531029e-07,
         "passed": true
       },
       "passed": true
     },
     {
       "circuit_size": 512,
-      "synapse_count": 8470,
+      "synapse_count": 6558,
       "seed": 100,
       "activation_step": {
-        "max_potential_abs_diff": 9.5367431640625e-07,
-        "max_potential_rel_diff": 2.3274500904335582e-07,
-        "max_activation_abs_diff": 1.1920928955078125e-07,
-        "max_activation_rel_diff": 1.4799407210830395e-07,
+        "max_potential_abs_diff": 1.1920928955078125e-07,
+        "max_potential_rel_diff": 1.275017638135978e-07,
+        "max_activation_abs_diff": 0.0,
+        "max_activation_rel_diff": 0.0,
         "passed": true
       },
       "plasticity_step": {
-        "max_weight_abs_diff": 5.960464477539063e-08,
-        "max_weight_rel_diff": 1.1906339381084763e-07,
+        "max_weight_abs_diff": 2.9802322387695312e-08,
+        "max_weight_rel_diff": 1.190421485830484e-07,
         "passed": true
       },
       "passed": true
     },
     {
       "circuit_size": 512,
-      "synapse_count": 8470,
+      "synapse_count": 6558,
       "seed": 2026,
       "activation_step": {
-        "max_potential_abs_diff": 9.5367431640625e-07,
-        "max_potential_rel_diff": 2.3467565313239902e-07,
-        "max_activation_abs_diff": 1.1920928955078125e-07,
-        "max_activation_rel_diff": 1.8066282336803852e-07,
+        "max_potential_abs_diff": 1.7881393432617188e-07,
+        "max_potential_rel_diff": 1.8129377110653877e-07,
+        "max_activation_abs_diff": 0.0,
+        "max_activation_rel_diff": 0.0,
         "passed": true
       },
       "plasticity_step": {
         "max_weight_abs_diff": 5.960464477539063e-08,
-        "max_weight_rel_diff": 1.1863907900533377e-07,
+        "max_weight_rel_diff": 1.1894723428440557e-07,
         "passed": true
       },
       "passed": true
     },
     {
       "circuit_size": 1024,
-      "synapse_count": 27035,
+      "synapse_count": 25751,
       "seed": 42,
       "activation_step": {
-        "max_potential_abs_diff": 9.5367431640625e-07,
-        "max_potential_rel_diff": 2.271044934332167e-07,
-        "max_activation_abs_diff": 1.1920928955078125e-07,
-        "max_activation_rel_diff": 1.544451748713982e-07,
+        "max_potential_abs_diff": 1.1920928955078125e-07,
+        "max_potential_rel_diff": 8.048197628340859e-07,
+        "max_activation_abs_diff": 0.0,
+        "max_activation_rel_diff": 0.0,
         "passed": true
       },
       "plasticity_step": {
         "max_weight_abs_diff": 5.960464477539063e-08,
-        "max_weight_rel_diff": 1.1916144870838252e-07,
+        "max_weight_rel_diff": 1.1888723605579798e-07,
         "passed": true
       },
       "passed": true
     },
     {
       "circuit_size": 1024,
-      "synapse_count": 27035,
+      "synapse_count": 25751,
       "seed": 100,
       "activation_step": {
-        "max_potential_abs_diff": 9.5367431640625e-07,
-        "max_potential_rel_diff": 2.0601682138021715e-07,
-        "max_activation_abs_diff": 1.7881393432617188e-07,
-        "max_activation_rel_diff": 1.8362096909640968e-07,
+        "max_potential_abs_diff": 1.1920928955078125e-07,
+        "max_potential_rel_diff": 1.8542240809438226e-07,
+        "max_activation_abs_diff": 0.0,
+        "max_activation_rel_diff": 0.0,
         "passed": true
       },
       "plasticity_step": {
         "max_weight_abs_diff": 5.960464477539063e-08,
-        "max_weight_rel_diff": 1.189256764178026e-07,
+        "max_weight_rel_diff": 1.1840005242902407e-07,
         "passed": true
       },
       "passed": true
     },
     {
       "circuit_size": 1024,
-      "synapse_count": 27035,
+      "synapse_count": 25751,
       "seed": 2026,
       "activation_step": {
-        "max_potential_abs_diff": 9.5367431640625e-07,
-        "max_potential_rel_diff": 2.347025542803749e-07,
-        "max_activation_abs_diff": 1.7881393432617188e-07,
-        "max_activation_rel_diff": 1.8326774409160862e-07,
+        "max_potential_abs_diff": 1.1920928955078125e-07,
+        "max_potential_rel_diff": 1.6838497174376243e-07,
+        "max_activation_abs_diff": 0.0,
+        "max_activation_rel_diff": 0.0,
         "passed": true
       },
       "plasticity_step": {
         "max_weight_abs_diff": 5.960464477539063e-08,
-        "max_weight_rel_diff": 1.190742580092774e-07,
+        "max_weight_rel_diff": 1.1909297370493732e-07,
         "passed": true
       },
       "passed": true

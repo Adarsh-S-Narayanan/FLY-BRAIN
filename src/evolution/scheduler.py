@@ -44,10 +44,10 @@ class EvolutionScheduler:
         spikes = step1["spikes"]
         
         # Trial 2: Motor tool responsiveness
-        speak_score = step1["tool_scores"].get("speak", 0.0)
+        speak_score = float(runtime.state.tool_associations.get("speak", 0.0))
         
-        # Fitness combines responsiveness and sparsity
-        fitness = (mean_act * 2.0) + (speak_score * 1.5) - (0.001 * spikes)
+        # Fitness combines responsiveness, selectivity, and energy-efficient firing
+        fitness = (mean_act * 3.0) + (speak_score * 2.0) - (0.0005 * spikes)
         return float(round(fitness, 4))
 
     def run_generation(
@@ -135,12 +135,16 @@ class EvolutionScheduler:
         self.save_history()
         return gen_summary
 
+    def get_lineage(self) -> Dict[str, Any]:
+        """Returns the full evolutionary lineage tree with candidate decisions."""
+        return {
+            "current_generation": self.generation,
+            "current_brain_id": self.current_brain_id,
+            "current_neurons": self.current_graph.num_neurons,
+            "current_synapses": self.current_graph.num_synapses,
+            "history": self.history
+        }
+
     def save_history(self):
         with open(self.history_file, "w", encoding="utf-8") as f:
-            json.dump({
-                "current_generation": self.generation,
-                "current_brain_id": self.current_brain_id,
-                "current_neurons": self.current_graph.num_neurons,
-                "current_synapses": self.current_graph.num_synapses,
-                "history": self.history
-            }, f, indent=2)
+            json.dump(self.get_lineage(), f, indent=2)

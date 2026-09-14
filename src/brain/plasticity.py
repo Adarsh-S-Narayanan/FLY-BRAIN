@@ -22,22 +22,29 @@ class PlasticityEngine:
     def apply_hebbian_update(
         self,
         graph: ConnectomeGraph,
-        pre_activations: np.ndarray,
-        post_activations: np.ndarray,
-        reward: float
+        pre_activations: Optional[np.ndarray] = None,
+        post_activations: Optional[np.ndarray] = None,
+        reward: float = 0.0,
+        prev_activations: Optional[np.ndarray] = None,
+        current_activations: Optional[np.ndarray] = None
     ) -> int:
         """
         Applies reward-modulated Hebbian update directly to CSR weights.
         Returns the number of synapses updated.
         """
+        pre = pre_activations if pre_activations is not None else prev_activations
+        post = post_activations if post_activations is not None else current_activations
+        if pre is None or post is None:
+            return 0
+
         M = len(graph.weights)
         for i in range(graph.num_neurons):
             start = graph.row_offsets[i]
             end = graph.row_offsets[i + 1]
-            a_post = post_activations[i]
+            a_post = float(post[i])
             for k in range(start, end):
                 pre_idx = graph.col_indices[k]
-                a_pre = pre_activations[pre_idx]
+                a_pre = float(pre[pre_idx])
                 w = graph.weights[k]
                 
                 # Three-factor rule: pre * post * reward - decay
@@ -71,6 +78,8 @@ class PlasticityEngine:
         graph.row_offsets = np.array(new_row_offsets, dtype=np.int32)
         graph.col_indices = np.array(new_col_indices, dtype=np.int32)
         graph.weights = np.array(new_weights, dtype=np.float32)
+        graph.graph_hash = graph.compute_graph_hash()
+        graph.validate_invariants()
         return pruned_count
 
     def rewire_coactive_synapses(
@@ -136,5 +145,7 @@ class PlasticityEngine:
             graph.row_offsets = np.array(new_row_offsets, dtype=np.int32)
             graph.col_indices = np.array(new_col_indices, dtype=np.int32)
             graph.weights = np.array(new_weights, dtype=np.float32)
+            graph.graph_hash = graph.compute_graph_hash()
+            graph.validate_invariants()
 
         return added_count

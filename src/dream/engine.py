@@ -1,5 +1,6 @@
 import time
 import json
+import hashlib
 import numpy as np
 from typing import Dict, Any, List, Optional
 from src.brain.runtime import BrainRuntime
@@ -10,7 +11,7 @@ class DreamEngine:
     Offline dream and experience replay pipeline.
     Replays authentic stored experiences, recombines sensory observations,
     simulates alternative actions counterfactually, evaluates hypothetical outcomes,
-    and consolidates insights into separate dream memory logs.
+    and consolidates insights into persistent memory.
     """
     def __init__(self, brain: BrainRuntime, memory_manager: PersistentMemoryManager):
         self.brain = brain
@@ -38,50 +39,73 @@ class DreamEngine:
             episodes = self.memory.get_recent_episodes(limit=1)
 
         dream_records = []
+        is_deterministic = (mode == "deterministic")
 
         for ep in episodes:
             base_ep_id = ep["id"]
             orig_action = ep["action"]
             
+            # Initial state hash before replay
+            h_init = hashlib.sha256()
+            h_init.update(self.brain.state.membrane_potentials.tobytes())
+            h_init.update(self.brain.state.spikes.tobytes())
+            initial_state_hash = h_init.hexdigest()
+
             # Select alternative counterfactual action
             possible_actions = ["speak", "generate_image", "remember", "act_in_environment"]
             alt_actions = [a for a in possible_actions if a != orig_action]
             sim_action = rng.choice(alt_actions) if mode == "exploratory" else alt_actions[0]
 
             # Recombine observation into simulated sensory input
-            sim_sensory = rng.uniform(0.1, 0.4, 64).astype(np.float32)
+            vis_len = min(64, self.brain.graph.num_neurons)
+            sim_sensory = rng.uniform(0.1, 0.4, vis_len).astype(np.float32)
             if mode == "exploratory":
-                sim_sensory += rng.normal(0.0, 0.05, 64).astype(np.float32)
+                sim_sensory += rng.normal(0.0, 0.05, vis_len).astype(np.float32)
 
-            # Step brain in counterfactual simulation (low plasticity to consolidate)
+            # Step brain in counterfactual simulation (low reward to consolidate)
             sim_out = self.brain.step(sensory_inputs={"visual": sim_sensory}, reward=0.0)
             
             # Hypothetical reward evaluation
-            counterfactual_reward = float(0.4 + 0.5 * sim_out["tool_scores"].get(sim_action, 0.0))
-            
+            act_score = float(self.brain.state.tool_associations.get(sim_action, 0.0))
+            counterfactual_reward = float(round(0.4 + 0.5 * act_score, 3))
+
+            # Result state hash
+            h_res = hashlib.sha256()
+            h_res.update(self.brain.state.membrane_potentials.tobytes())
+            h_res.update(self.brain.state.spikes.tobytes())
+            result_state_hash = h_res.hexdigest()
+
             insight = (
-                f"Dream Replay of Ep #{base_ep_id}: Simulated '{sim_action}' instead of '{orig_action}'. "
-                f"Counterfactual Reward: {counterfactual_reward:.3f}. "
-                f"Consolidated memory pathways."
+                f"Replayed episode #{base_ep_id} (orig action: {orig_action}). "
+                f"Counterfactual simulation '{sim_action}' yielded predicted reward {counterfactual_reward:.2f}."
             )
 
-            # Record in dedicated dream memory
+            # Consolidate into persistent memory
             dream_id = self.memory.record_dream(
-                seed=seed,
-                base_episode_id=base_ep_id,
+                episode_id=base_ep_id,
+                replay_step=self.brain.state.step_count,
                 simulated_action=sim_action,
-                counterfactual_reward=round(counterfactual_reward, 3),
-                insight=insight
+                hypothetical_reward=counterfactual_reward,
+                consolidation_insight=insight
             )
 
-            dream_records.append({
+            record = {
                 "dream_id": dream_id,
                 "base_episode_id": base_ep_id,
                 "mode": mode,
-                "original_action": orig_action,
-                "simulated_action": sim_action,
-                "counterfactual_reward": round(counterfactual_reward, 3),
+                "is_deterministic": is_deterministic,
+                "seed": seed,
+                "initial_state_hash": initial_state_hash,
+                "counterfactual_action": sim_action,
+                "parameters": {
+                    "noise_scale": 0.05 if mode == "exploratory" else 0.0,
+                    "sensory_len": vis_len
+                },
+                "counterfactual_reward": counterfactual_reward,
+                "result_state_hash": result_state_hash,
+                "consolidation_result": "CONSOLIDATED_TO_PERSISTENT_MEMORY",
                 "insight": insight
-            })
+            }
+            dream_records.append(record)
 
         return dream_records

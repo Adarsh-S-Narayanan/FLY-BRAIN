@@ -26,7 +26,8 @@ dependencies = [
     "transformers>=4.40.0",
     "accelerate>=0.30.0",
     "pydantic>=2.7.0",
-    "requests>=2.31.0"
+    "requests>=2.31.0",
+    "psutil>=5.9.0"
 ]
 
 [project.scripts]

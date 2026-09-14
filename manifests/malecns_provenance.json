@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "provenance_metadata": {
+    "dataset_name": "Janelia MaleCNS",
+    "dataset_version": "male-cns:v1.0",
+    "organism": "Drosophila melanogaster",
+    "sex": "male",
+    "institution": "Janelia Research Campus (HHMI) & University of Cambridge",
+    "upstream_repository": "https://github.com/natverse/malecns",
+    "license": "GPL-3.0",
+    "files": {
+      "soma_sides_csv": {
+        "path": "malecns/data-raw/2023-27-2 soma_sides.csv",
+        "sha256": "6c1c415ab748ab1cc65c9a274885cfadc880a88eabb17915afe643c105bac84d",
+        "record_count": 125506,
+        "total_tbars": 25394402,
+        "description": "Biological neuron soma coordinates, hemilateral side, nucleus size, and presynaptic T-bars."
+      },
+      "connections_csv": {
+        "path": "malecns/data-raw/malecns_v1_0_connections.csv",
+        "sha256": "039e929b4ccc776f13a8d17eb9833d85de9454b8f43a0a0de34fdabb7ca2a668",
+        "record_count": 99301,
+        "description": "Authentic Janelia MaleCNS v1.0 biological synaptic connection table among major hub neurons."
+      }
+    },
+    "graph_modes": {
+      "REAL": {
+        "class_name": "MaleCNSRealGraph",
+        "status": "VERIFIED",
+        "description": "Constructed from authentic biological synaptic connection tables."
+      },
+      "SPATIAL_SURROGATE": {
+        "class_name": "MaleCNSSpatialSurrogateGraph",
+        "status": "SURROGATE",
+        "description": "Constructed from spatial k-d tree proximity and biological presynaptic T-bar capacities."
+      },
+      "SYNTHETIC_TEST": {
+        "class_name": "SyntheticTestGraph",
+        "status": "EXPERIMENTAL",
+        "description": "Deterministic synthetic network for regression and CI testing."
+      }
+    },
+    "populations": [
+      "visual",
+      "auditory",
+      "olfactory",
+      "mechanosensory",
+      "descending",
+      "motor",
+      "interneuron",
+      "modulatory",
+      "memory_association",
+      "other"
+    ]
+  }
+}
