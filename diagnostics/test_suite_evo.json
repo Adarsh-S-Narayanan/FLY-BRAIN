@@ -1,19 +1,19 @@
 {
   "current_generation": 1,
-  "current_brain_id": "brain_gen1_c1_9a618a",
+  "current_brain_id": "brain_gen1_c1_13c6d9",
   "current_neurons": 256,
   "current_synapses": 1934,
   "history": [
     {
       "generation": 1,
-      "parent_id": "brain_gen1_c1_9a618a",
+      "parent_id": "brain_gen1_c1_13c6d9",
       "baseline_score": 1.3251,
       "best_score": 1.3319,
       "improved": true,
       "candidates": [
         {
-          "candidate_id": "brain_gen1_c0_121263",
-          "parent_id": "brain_gen0_9c3b4d51",
+          "candidate_id": "brain_gen1_c0_3e74de",
+          "parent_id": "brain_gen0_dcc9d140",
           "generation": 1,
           "seed": 52,
           "num_neurons": 256,
@@ -33,8 +33,8 @@
           "sha256": "dbda1a8a3505b378484f995d7a2dfe6fd078f8ce32005a24f13087053a660de8"
         },
         {
-          "candidate_id": "brain_gen1_c1_9a618a",
-          "parent_id": "brain_gen0_9c3b4d51",
+          "candidate_id": "brain_gen1_c1_13c6d9",
+          "parent_id": "brain_gen0_dcc9d140",
           "generation": 1,
           "seed": 53,
           "num_neurons": 256,
@@ -59,8 +59,8 @@
           "sha256": "eb4b8ec128ebc67baeb6cb4920984e916d8728838f55f473c5b96b6420a07734"
         },
         {
-          "candidate_id": "brain_gen1_c2_f95d6a",
-          "parent_id": "brain_gen0_9c3b4d51",
+          "candidate_id": "brain_gen1_c2_f58292",
+          "parent_id": "brain_gen0_dcc9d140",
           "generation": 1,
           "seed": 54,
           "num_neurons": 260,
@@ -86,8 +86,8 @@
           "sha256": "47bfdbe848e3412ae615b29b06b4bcc616e66928d28762604473c91077b34642"
         },
         {
-          "candidate_id": "brain_gen1_c3_971f3f",
-          "parent_id": "brain_gen0_9c3b4d51",
+          "candidate_id": "brain_gen1_c3_077500",
+          "parent_id": "brain_gen0_dcc9d140",
           "generation": 1,
           "seed": 55,
           "num_neurons": 256,

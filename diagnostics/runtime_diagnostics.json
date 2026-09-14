@@ -1,11 +1,11 @@
 {
-  "timestamp": 1789398845.8909984,
+  "timestamp": 1789403533.741136,
   "vulkan_backend": {
     "device_name": "AMD Radeon(TM) Graphics",
     "device_type": 1,
     "driver_version": 8388961,
-    "step_latency_ms_mean": 4.347,
-    "step_latency_ms_std": 0.353,
+    "step_latency_ms_mean": 4.359,
+    "step_latency_ms_std": 0.262,
     "status": "OPERATIONAL"
   },
   "connectome": {
