@@ -200,6 +200,11 @@ Every PASS corresponds to an executable behavioral assertion (no source-text-onl
 | 31 | `llm_model_discovery_and_inference` | **PASS** | Local GGUF discovered, loaded, and generated tokens. |
 | 32 | `llm_failure_mode_and_tool_safety` | **PASS** | Unavailable model returns structured error; shell/unknown tools rejected. |
 
+> **Environment-dependent gates are `SKIP`, never fake-PASS:** on GPU-less CI
+> runners, gates 9–11 (Vulkan discovery/lifecycle/parity) skip; on hosts without
+> local GGUF weights, gate 31 (LLM discovery/inference) skips. Cloud CI profile:
+> **28 PASS / 4 SKIP / 0 FAIL → PASSED**. Workstation profile: **32/32 PASS**.
+
 ---
 
 ## Multi-Store Persistent Memory

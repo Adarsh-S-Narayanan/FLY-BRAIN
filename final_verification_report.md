@@ -71,6 +71,15 @@
 
 ## 3. Canonical results
 
+- **Workstation profile** (Vulkan + local GGUF present): acceptance matrix **32/32 PASS**,
+  0 skipped.
+- **Cloud CI profile** (ubuntu-latest / windows-latest, no GPU device, no GGUF weights
+  — model binaries are gitignored): **28 PASS / 4 SKIP / 0 FAIL → PASSED**
+  (skips: `vulkan_discovery_and_selection`, `persistent_resource_lifecycle`,
+  `cpu_vulkan_numerical_parity`, `llm_model_discovery_and_inference`).
+  Unavailable-model honesty is independently verified by
+  `llm_failure_mode_and_tool_safety` (PASS everywhere).
+
 - **ALife** (seed 7, pop 6, 60 ticks): 7 living, 4 births, 2 deaths, generations `[0, 1]`
   coexisting, 12 teaching sessions, replay hash `70a5e4b29e06c320`, match `True`.
 - **Campaign checkpoint/resume** (seed 11, pop 6, 4 generations): resume branch hash equals uninterrupted branch.
