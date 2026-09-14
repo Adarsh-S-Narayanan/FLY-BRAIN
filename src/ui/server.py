@@ -16,12 +16,26 @@ from typing import Dict, Any, Optional, List
 from src.connectome.types import GraphMode, ProvenanceStatus
 from src.brain.simulation_engine import SimulationEngine
 from src.experiment.manager import ExperimentManager, get_file_sha256, get_git_commit
+from src.common.determinism import SeedBundle
+from src.population.population import Population
 
 app = FastAPI(title="FlyBrain Lab — Biological Connectome Research Platform")
 
 # Central Simulation Engine instance
 SIMULATION_ENGINE: Optional[SimulationEngine] = None
 EXPERIMENT_MGR = ExperimentManager()
+COLONY: Optional[Population] = None
+
+
+def get_colony() -> Population:
+    """Live ALife colony (REAL state; small CPU circuit for interactivity)."""
+    global COLONY
+    if COLONY is None:
+        seeds = SeedBundle(experiment_seed=7, generation_seed=8, organism_seed=9,
+                           development_seed=10, mutation_seed=11, world_seed=12,
+                           teacher_seed=13)
+        COLONY = Population(6, seeds, GraphMode.SYNTHETIC_TEST, 32, experiment_seed=7)
+    return COLONY
 
 def get_engine() -> SimulationEngine:
     global SIMULATION_ENGINE
@@ -289,3 +303,111 @@ async def websocket_telemetry(ws: WebSocket):
         pass
     finally:
         engine.unregister_telemetry_queue(queue)
+
+
+# ---------------- ALife colony endpoints (REAL population state) ----------------
+
+class ColonyResetRequest(BaseModel):
+    size: int = 6
+    seed: int = 7
+    circuit_size: int = 32
+
+
+@app.post("/api/colony/reset")
+def post_colony_reset(req: ColonyResetRequest):
+    global COLONY
+    seeds = SeedBundle(experiment_seed=req.seed, generation_seed=req.seed + 1,
+                       organism_seed=req.seed + 2, development_seed=req.seed + 3,
+                       mutation_seed=req.seed + 4, world_seed=req.seed + 5,
+                       teacher_seed=req.seed + 6)
+    COLONY = Population(max(1, min(req.size, 50)), seeds,
+                        GraphMode.SYNTHETIC_TEST, req.circuit_size,
+                        experiment_seed=req.seed)
+    return {"status": "COLONY_RESET", "size": len(COLONY.organisms)}
+
+
+@app.post("/api/colony/step")
+def post_colony_step(ticks: int = 5):
+    pop = get_colony()
+    pop.step(max(1, min(ticks, 50)))
+    return {"status": "STEPPED", "tick": pop.tick, "living": len(pop.living())}
+
+
+@app.post("/api/colony/reproduce")
+def post_colony_reproduce(n_offspring: int = 2, mode: str = "sexual"):
+    pop = get_colony()
+    kids = pop.reproduce(max(1, min(n_offspring, 8)), mode=mode)
+    return {"newborns": [k.id for k in kids], "total": len(pop.organisms)}
+
+
+@app.get("/api/colony")
+def get_colony_status():
+    """Colony view: real per-organism state for sorting/filtering."""
+    pop = get_colony()
+    return {
+        "tick": pop.tick,
+        "living": len(pop.living()),
+        "total": len(pop.organisms),
+        "population_hash": pop.population_hash(),
+        "world_hash": pop.world.world_hash(),
+        "organisms": [
+            {"id": o.id, "generation": o.generation, "stage": o.stage.value,
+             "alive": o.alive, "age": o.age, "energy": round(o.energy, 3),
+             "health": round(o.health, 3), "neurons": o.graph.num_neurons,
+             "synapses": o.graph.num_synapses,
+             "genome_hash": o.genome.genome_hash()[:16],
+             "fitness": o.fitness_vector(),
+             "skills": {k: round(v, 3) for k, v in o.skills.items()},
+             "position": list(o.position), "parents": o.parents,
+             "children": o.children}
+            for o in sorted(pop.organisms, key=lambda x: x.id)
+        ],
+    }
+
+
+@app.get("/api/colony/organism/{organism_id}")
+def get_organism_detail(organism_id: str):
+    """Organism inspector: real identity, lineage, brain, memory, culture."""
+    pop = get_colony()
+    for o in pop.organisms:
+        if o.id == organism_id:
+            return {
+                "id": o.id, "generation": o.generation, "parents": o.parents,
+                "children": o.children, "stage": o.stage.value, "alive": o.alive,
+                "age": o.age, "energy": o.energy, "health": o.health,
+                "genome": o.genome.to_dict(), "genome_hash": o.genome.genome_hash(),
+                "brain": {"neurons": o.graph.num_neurons, "synapses": o.graph.num_synapses,
+                          "graph_hash": o.graph.graph_hash,
+                          "complexity": o.dev_engine.complexity_metrics(o.graph, o.dev)},
+                "memory": {"episodes": len(o.episodes), "concepts": list(o.semantic.keys()),
+                           "recent": o.episodes[-3:]},
+                "culture": o.cultural_knowledge, "skills": o.skills,
+                "organism_hash": o.organism_hash(),
+            }
+    raise HTTPException(status_code=404, detail="organism not found")
+
+
+@app.get("/api/colony/lineage")
+def get_colony_lineage():
+    """Genetic vs cultural lineage trees (REAL tracked graphs)."""
+    pop = get_colony()
+    return {"genetic": pop.genetic_lineage, "cultural": pop.cultural_lineage,
+            "teaching_sessions": [
+                {"teacher": s.teacher, "student": s.student, "domain": s.domain,
+                 "gain": s.learning_gain} for s in pop.teaching_sessions[-50:]]}
+
+
+@app.get("/api/colony/experiments")
+def list_alife_experiments():
+    d = "diagnostics/alife_experiments"
+    if not os.path.isdir(d):
+        return []
+    out = []
+    for f in sorted(os.listdir(d), reverse=True)[:20]:
+        if f.endswith(".json"):
+            try:
+                with open(os.path.join(d, f), encoding="utf-8") as fp:
+                    out.append(json.load(fp))
+            except Exception:
+                pass
+    return out

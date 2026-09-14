@@ -1,0 +1,21 @@
+{
+  "python": "3.12.13",
+  "os": "Windows-11-10.0.26200-SP0",
+  "git_commit": "f00cad98326487093a7ccd453f5bfb1ee0c93ee6",
+  "connectome": {
+    "soma_sha256": "6c1c415ab748ab1cc65c9a274885cfadc880a88eabb17915afe643c105bac84d",
+    "connections_sha256": "039e929b4ccc776f13a8d17eb9833d85de9454b8f43a0a0de34fdabb7ca2a668"
+  },
+  "canonical_experiment": {
+    "manifest": "alife_p10_t150_s7.json",
+    "population_hash": "70a5e4b29e06c32037abc8e30237d48ed96d465ea48187cca66fa12c524bce4d",
+    "events_hash": "1ff412729b9e87c71df751cc5faec830e54ade1196cf0ae91ceb78ec8eece164",
+    "births": 4,
+    "deaths": 6,
+    "teaching_sessions": 131
+  },
+  "tests": {
+    "test_alife": "10/10 pass",
+    "legacy_subset": "5/5 pass"
+  }
+}
