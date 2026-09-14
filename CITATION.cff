@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use FlyBrain in your research, please cite it as below."
+authors:
+  - family-names: "HCS"
+    given-names: "Tim"
+title: "FlyBrain: Vulkan-First Artificial Organism Research Platform"
+version: 1.0.0
+date-released: 2026-09-14
+url: "https://github.com/timfromhcs/FlyBrain"
+repository-code: "https://github.com/timfromhcs/FlyBrain"
+keywords:
+  - "connectomics"
+  - "artificial organism"
+  - "vulkan compute"
+  - "computational neuroscience"
+  - "hebbian plasticity"
+  - "drosophila malecns"

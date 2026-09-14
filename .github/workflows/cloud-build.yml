@@ -1,0 +1,46 @@
+name: Cloud Build & Package Integrity
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  cloud-build:
+    name: Cloud Build & Reproducibility Check
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Setup Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: 1.3.275.0
+
+      - name: Install Dependencies
+        run: |
+          uv pip install --system numpy scipy pillow sounddevice soundfile vulkan fastapi uvicorn websockets diffusers transformers accelerate torch torchvision
+
+      - name: Compile SPIR-V Shaders
+        run: |
+          glslc shaders/brain_step.comp -o shaders/brain_step.spv
+          glslc shaders/plasticity.comp -o shaders/plasticity.spv
+
+      - name: Generate Fresh Reproducibility Manifests
+        run: |
+          python scripts/generate_manifests.py
+          python scripts/generate_runtime_diagnostics.py
+
+      - name: Check Artifact Cleanliness
+        run: |
+          git status --short

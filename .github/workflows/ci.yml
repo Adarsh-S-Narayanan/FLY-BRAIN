@@ -1,0 +1,79 @@
+name: FlyBrain CI/CD & Automated Verification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test & Verify Matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
+        python-version: [ '3.12' ]
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv Package Manager
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Install Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: 1.3.275.0
+          vulkan-components: Vulkan-Headers, Vulkan-Loader, glslc
+          vulkan-use-cache: true
+
+      - name: Install Project Dependencies
+        run: |
+          uv pip install --system numpy scipy pillow sounddevice soundfile vulkan fastapi uvicorn websockets diffusers transformers accelerate torch torchvision
+
+      - name: Compile SPIR-V Compute Shaders
+        run: |
+          glslc shaders/brain_step.comp -o shaders/brain_step.spv
+          glslc shaders/plasticity.comp -o shaders/plasticity.spv
+
+      - name: Validate Biological Connectome Data
+        run: |
+          python scripts/validate_malecns_data.py
+
+      - name: Run Core Test Suite
+        run: |
+          python tests/test_suite.py
+
+      - name: Run State Persistence & Replay Verification
+        run: |
+          python scripts/test_state_persistence.py
+
+      - name: Run Dream & Experience Replay Pipeline
+        run: |
+          python scripts/test_dreaming.py
+
+      - name: Run Connectome Evolution Benchmark
+        run: |
+          python scripts/test_evolution.py
+
+      - name: Upload Test & Diagnostic Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: diagnostics-${{ matrix.os }}
+          path: |
+            diagnostics/
+            visual_evidence/
+          retention-days: 14
