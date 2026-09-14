@@ -24,6 +24,7 @@ layout(std430, binding = 4) readonly buffer PreActivations {
 
 layout(std430, binding = 5) readonly buffer PlasticityParams {
     int num_synapses;
+    int num_neurons;
     float learning_rate;
     float reward;
     float weight_decay;
@@ -39,10 +40,24 @@ void main() {
 
     int pre_idx = col_indices[k];
     float a_pre = pre_activations[pre_idx];
-    
+
+    // Postsynaptic neuron = CSR row owning synapse k (binary search).
+    int lo = 0;
+    int hi = params.num_neurons;
+    while (lo < hi) {
+        int mid = (lo + hi) / 2;
+        if (row_offsets[mid + 1] <= int(k)) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    float a_post = post_activations[lo];
+
+    // Three-factor rule: pre * post * reward - decay (matches CPU reference).
     float w = weights[k];
-    float delta_w = params.learning_rate * params.reward * (a_pre - params.weight_decay * w);
-    
+    float delta_w = params.learning_rate * params.reward * (a_pre * a_post - params.weight_decay * w);
+
     float new_w = clamp(w + delta_w, params.min_weight, params.max_weight);
     weights[k] = new_w;
 }

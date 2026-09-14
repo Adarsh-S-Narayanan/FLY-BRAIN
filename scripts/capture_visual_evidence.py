@@ -7,7 +7,12 @@ import requests
 import uvicorn
 import threading
 
-EDGE_PATH = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+import shutil
+
+EDGE_PATH = os.environ.get(
+    "FLYBRAIN_EDGE_PATH",
+    shutil.which("msedge") or shutil.which("microsoft-edge") or
+    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
 OUTPUT_DIR = os.path.abspath("visual_evidence/screens")
 
 def run_server():
@@ -15,6 +20,10 @@ def run_server():
     uvicorn.run(app, host="127.0.0.1", port=8080, log_level="warning")
 
 def capture_screen(url: str, output_png: str, delay_sec: float = 1.5):
+    if not EDGE_PATH or not os.path.exists(EDGE_PATH):
+        print(f"SKIP screenshot {os.path.basename(output_png)}: no Edge/Chromium binary "
+              f"(set FLYBRAIN_EDGE_PATH). No fabricated image is produced.")
+        return
     os.makedirs(os.path.dirname(output_png), exist_ok=True)
     time.sleep(delay_sec)
     cmd = [

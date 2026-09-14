@@ -225,5 +225,35 @@ class TestFuzz(unittest.TestCase):
             Organism.restore(snap)
 
 
+class TestPopulationBranchReplay(unittest.TestCase):
+    def test_population_snapshot_branch_identical(self):
+        import json as _json
+        from src.common.determinism import SeedBundle
+        seeds = SeedBundle(experiment_seed=61, generation_seed=62, organism_seed=63,
+                           development_seed=64, mutation_seed=65, world_seed=66,
+                           teacher_seed=67)
+        pop = Population(4, seeds, GraphMode.SYNTHETIC_TEST, 32, experiment_seed=61)
+        pop.step(20)
+        snap = _json.loads(_json.dumps(pop.snapshot()))
+        pop.step(10)
+        hash_a = pop.population_hash()
+        pop2 = Population.restore(snap, seeds)
+        pop2.step(10)
+        self.assertEqual(pop2.population_hash(), hash_a)
+
+    def test_pareto_selection_returns_living_ranked(self):
+        from src.common.determinism import SeedBundle
+        seeds = SeedBundle(experiment_seed=71, generation_seed=72, organism_seed=73,
+                           development_seed=74, mutation_seed=75, world_seed=76,
+                           teacher_seed=77)
+        pop = Population(6, seeds, GraphMode.SYNTHETIC_TEST, 32, experiment_seed=71)
+        pop.step(25)
+        parents = pop.select_parents_pareto(k=3)
+        self.assertLessEqual(len(parents), 3)
+        for p in parents:
+            self.assertTrue(p.alive)
+            self.assertIn(p, pop.living())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

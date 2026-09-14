@@ -6,34 +6,37 @@ from typing import Dict, Any, Optional
 from diffusers import AutoencoderTiny
 from src.tools.base import ToolConnector
 
-LOCAL_VAE_PATH = r"C:\Users\hcsme\.cache\huggingface\hub\models--carlofkl--DreamLite-mobile\snapshots\a48c656c291fe98f74a0405961c9e4e3eee5d6c8\vae"
+# R9: resolution order env > project-local models/ dir > remote cache > procedural.
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOCAL_VAE_PATH = os.environ.get(
+    "FLYBRAIN_VAE_PATH",
+    os.path.join(_PROJECT_ROOT, "models", "dreamlite-vae"))
+REMOTE_VAE_ID = "madebyollin/taesd"
 
 class GenerateImageConnector(ToolConnector):
     def __init__(self, output_dir: str = "visual_evidence/images"):
         super().__init__(
             name="generate_image",
-            description="Generates real 256x256 visual imagery using local neural AutoencoderTiny VAE modulated by prompt and latent state.",
+            description="Generates 256x256 visual imagery (local/remote AutoencoderTiny VAE when available, otherwise deterministic procedural rendering; renderer reported per call).",
             timeout_sec=20.0
         )
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
         self.vae = None
+        self.renderer = "procedural"
         self._load_vae()
 
     def _load_vae(self):
-        if os.path.exists(LOCAL_VAE_PATH):
+        for candidate, tag in ((LOCAL_VAE_PATH, "vae_local"), (REMOTE_VAE_ID, "vae_remote")):
             try:
-                self.vae = AutoencoderTiny.from_pretrained(LOCAL_VAE_PATH)
+                self.vae = AutoencoderTiny.from_pretrained(candidate)
                 self.vae.eval()
+                self.renderer = tag
                 return
             except Exception as e:
-                print(f"[GenerateImage] Error loading local VAE: {e}")
-        
-        try:
-            self.vae = AutoencoderTiny.from_pretrained("madebyollin/taesd")
-            self.vae.eval()
-        except Exception:
-            self.vae = None
+                print(f"[GenerateImage] VAE source unavailable ({candidate}): {e}")
+        self.vae = None
+        self.renderer = "procedural"
 
     @property
     def input_schema(self) -> Dict[str, Any]:
@@ -106,5 +109,6 @@ class GenerateImageConnector(ToolConnector):
             "image_path": img_path,
             "width": img.width,
             "height": img.height,
-            "mean_luminance": round(mean_lum, 4)
+            "mean_luminance": round(mean_lum, 4),
+            "renderer": self.renderer
         }

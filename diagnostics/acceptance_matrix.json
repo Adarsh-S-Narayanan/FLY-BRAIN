@@ -1,8 +1,8 @@
 {
-  "timestamp": 1789414446.459909,
+  "timestamp": 1789416441.3309824,
   "overall_status": "PASSED",
-  "total_categories": 19,
-  "passed": 19,
+  "total_categories": 25,
+  "passed": 25,
   "failed": 0,
   "skipped": 0,
   "categories": {
@@ -60,15 +60,15 @@
     },
     "deterministic_experiment_replication": {
       "status": "PASS",
-      "reason": "Exact 256-bit SHA-256 match (fc03a8dda4960002...) across independent runs."
+      "reason": "Exact 256-bit SHA-256 match (6a81b923b5deccf7...) across independent runs."
     },
     "local_model_degradation_honesty": {
       "status": "PASS",
-      "reason": "System honestly declared cognitive status: OPERATIONAL"
+      "reason": "System honestly declared cognitive status: MODEL_UNAVAILABLE"
     },
     "continuous_learning_weight_change": {
       "status": "PASS",
-      "reason": "Synaptic plasticity modified weights. Max delta_w: 1.494773e-01."
+      "reason": "Synaptic plasticity modified weights. Max delta_w: 1.489556e-01."
     },
     "ui_no_blocking_alerts": {
       "status": "PASS",
@@ -81,6 +81,30 @@
     "documentation_claim_consistency": {
       "status": "PASS",
       "reason": "All documentation claims match datasets, shader descriptors, and API routes exactly."
+    },
+    "alife_branch_replay_determinism": {
+      "status": "PASS",
+      "reason": "Population snapshot branch replay produced identical hash (e74bdbfe50e6a638)."
+    },
+    "developmental_structural_integrity": {
+      "status": "PASS",
+      "reason": "Full developmental pipeline: 1 born, 6 synapses grown, 4 died; invariants hold, dead neurons edgeless."
+    },
+    "genome_mutation_crossover_provenance": {
+      "status": "PASS",
+      "reason": "Mutation/crossover deterministic with complete parent provenance."
+    },
+    "overlapping_reproduction": {
+      "status": "PASS",
+      "reason": "4 reproductions across generations [0, 1]; parents alive at every birth: True."
+    },
+    "cultural_transmission_gain": {
+      "status": "PASS",
+      "reason": "Measured learning gain 0.3766 with teacher chain ['mx-teacher']."
+    },
+    "real_mode_zero_surrogate_edges": {
+      "status": "PASS",
+      "reason": "REAL-64 graph: 100 edges, 0 non-empirical; metadata confirms zero surrogate."
     }
   }
 }

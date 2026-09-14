@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Vulkan-1.2%2B%20Compute-red?logo=vulkan&logoColor=white" alt="Vulkan Compute">
   <img src="https://img.shields.io/badge/Biological%20Data-Janelia%20MaleCNS-059669" alt="Janelia MaleCNS">
-  <img src="https://img.shields.io/badge/Acceptance%20Matrix-19%2F19%20PASSED-brightgreen" alt="Acceptance Matrix">
+  <img src="https://img.shields.io/badge/Acceptance%20Matrix-25%2F25%20PASSED-brightgreen" alt="Acceptance Matrix">
   <img src="https://img.shields.io/badge/Platform-Windows%2011%20%7C%20Linux-0284c7" alt="Platform">
 </p>
 
@@ -24,7 +24,7 @@
 4. [Persistent Vulkan Compute Engine](#persistent-vulkan-compute-engine)
 5. [FlyBrain Lab: Scientific Workstation UI](#flybrain-lab-scientific-workstation-ui)
 6. [Deterministic Experimentation CLI](#deterministic-experimentation-cli)
-7. [Automated Release Acceptance Matrix (19/19 Passed)](#automated-release-acceptance-matrix-1919-passed)
+7. [Automated Release Acceptance Matrix (25/25 Passed)](#automated-release-acceptance-matrix-2525-passed)
 8. [Multi-Store Persistent Memory](#multi-store-persistent-memory)
 9. [Installation & Quick Start](#installation--quick-start)
 10. [Hardware Benchmark Results](#hardware-benchmark-results)
@@ -151,7 +151,7 @@ flybrain experiment verify --result <experiment_id>
 # Compare two experiment runs across metrics and state hashes
 flybrain experiment compare --a <exp_id_1> --b <exp_id_2>
 
-# Run full 19-category release acceptance matrix
+# Run full 25-category release acceptance matrix
 flybrain acceptance-matrix
 
 # Verify consistency between code, shaders, and documentation
@@ -160,9 +160,10 @@ flybrain docs-verify
 
 ---
 
-## Automated Release Acceptance Matrix (19/19 Passed)
+## Automated Release Acceptance Matrix (25/25 Passed)
 
-Release readiness is verified by `scripts/run_acceptance_matrix.py`, producing `diagnostics/acceptance_matrix.json`:
+Release readiness is verified by `scripts/run_acceptance_matrix.py`, producing `diagnostics/acceptance_matrix.json`.
+Every PASS corresponds to an executable behavioral assertion (no source-text-only checks):
 
 | Index | Category | Status | Details |
 | :---: | :--- | :---: | :--- |
@@ -185,6 +186,12 @@ Release readiness is verified by `scripts/run_acceptance_matrix.py`, producing `
 | 17 | `ui_no_blocking_alerts` | **PASS** | Zero blocking `alert()` or `prompt()` calls in FlyBrain Lab workstation. |
 | 18 | `full_pipeline_e2e_runnable` | **PASS** | End-to-end pipeline (real connectome -> step -> snapshot) runs cleanly. |
 | 19 | `documentation_claim_consistency` | **PASS** | All documentation claims match datasets, shader descriptors, and API routes. |
+| 20 | `alife_branch_replay_determinism` | **PASS** | Population snapshot branch replay yields identical state hash. |
+| 21 | `developmental_structural_integrity` | **PASS** | Full developmental pipeline preserves graph invariants; dead neurons edgeless. |
+| 22 | `genome_mutation_crossover_provenance` | **PASS** | Deterministic mutation/crossover with complete parent provenance. |
+| 23 | `overlapping_reproduction` | **PASS** | Multiple reproductions; parents alive at every birth; >1 generation coexists. |
+| 24 | `cultural_transmission_gain` | **PASS** | Measured teacher→student learning gain with provenance chain. |
+| 25 | `real_mode_zero_surrogate_edges` | **PASS** | REAL graph edges are 100% empirical; metadata confirms zero surrogate. |
 
 ---
 
@@ -230,13 +237,14 @@ python src/main.py lab
 
 ## Hardware Benchmark Results
 
-Evaluated on physical hardware (AMD Ryzen 7 7735HS, AMD Radeon 680M GPU, Windows 11):
+Re-measured 2026-09-14 on physical hardware (AMD Ryzen 7 7735HS, AMD Radeon 680M GPU,
+Windows 11) against the current empirical REAL topology (20 persistent steps each):
 
 | Circuit Size (Neurons) | Synapses | Vulkan Latency (ms) | Throughput (Steps/Sec) | Throughput (Synapses/Sec) |
 | :---: | :---: | :---: | :---: | :---: |
-| 256 | 1,452 | 0.165 ms | 6,060.6 | 8.80 M/s |
-| 512 | 6,558 | 0.182 ms | 5,482.5 | 35.95 M/s |
-| 1,024 | 25,751 | 0.245 ms | 4,081.6 | 105.10 M/s |
+| 256 | 1,449 | 0.374 ms | 2,676.3 | 3.88 M/s |
+| 512 | 6,557 | 0.237 ms | 4,221.5 | 27.68 M/s |
+| 1,024 | 25,749 | 0.260 ms | 3,839.2 | 98.86 M/s |
 
 ---
 
@@ -244,7 +252,7 @@ Evaluated on physical hardware (AMD Ryzen 7 7735HS, AMD Radeon 680M GPU, Windows
 
 FlyBrain contains a real, small-scale artificial-life layer on top of the connectome core.
 Nothing below is mocked: every claimed behavior is implemented, tested in
-`tests/test_alife.py` (10/10 pass), and reproducible via `scripts/run_alife_experiment.py`.
+`tests/test_alife.py` (12/12 pass), and reproducible via `scripts/run_alife_experiment.py`.
 Details: `docs/alife_architecture.md`.
 
 ```bash

@@ -40,6 +40,17 @@ class PopulationMetadata:
     count: int
     provenance_status: ProvenanceStatus = ProvenanceStatus.DERIVED
     confidence: float = 0.95
+    # P3 honesty fields: coordinate-heuristic populations are NOT EM-annotated.
+    classification_method: str = "coordinate_heuristic"
+    biological_source: str = "none"
+    annotation_status: str = "no_em_annotation_available"
+    heuristic: bool = True
+
+    def assert_not_empirical(self):
+        if not self.heuristic:
+            raise AssertionError(f"Population '{self.name}' claims non-heuristic status without EM annotation")
+        if self.provenance_status == ProvenanceStatus.VERIFIED:
+            raise AssertionError(f"Heuristic population '{self.name}' must not be VERIFIED")
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -49,6 +60,10 @@ class PopulationMetadata:
             "count": self.count,
             "provenance_status": self.provenance_status.value,
             "confidence": self.confidence,
+            "classification_method": self.classification_method,
+            "biological_source": self.biological_source,
+            "annotation_status": self.annotation_status,
+            "heuristic": self.heuristic,
             "neuron_indices": self.neuron_indices.tolist()
         }
 

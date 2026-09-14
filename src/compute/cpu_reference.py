@@ -1,3 +1,14 @@
+"""
+Deterministic CPU reference implementation of classical Leaky Integrate-and-Fire (LIF).
+
+UNIT CONTRACT (architecture C): the implementation works in NORMALIZED simulation
+units by default (decay=0.85, threshold=1.0, v_reset=0.0, v_rest=0.0, t_ref=2).
+Physical millivolt semantics are obtained by passing explicit parameters, with the
+reference mapping V_norm = (V_mV + 70.0) / 20.0, i.e. rest -70mV -> 0.0,
+threshold -50mV -> 1.0, reset -70mV -> 0.0. The Vulkan shader implements the
+identical parametrized equations; CPU/GPU parity is validated by
+scripts + tests, not assumed.
+"""
 import numpy as np
 from typing import Tuple, Optional
 
@@ -103,24 +114,33 @@ def cpu_plasticity_step(
     col_indices: np.ndarray,
     weights: np.ndarray,
     pre_activations: np.ndarray,
-    learning_rate: float,
-    reward: float,
+    post_activations: np.ndarray,
+    row_offsets: np.ndarray,
+    learning_rate: float = 0.05,
+    reward: float = 1.0,
     weight_decay: float = 0.01,
     min_weight: float = 0.01,
     max_weight: float = 1.0
 ) -> np.ndarray:
     """
-    Deterministic CPU reference implementation of synaptic plasticity.
-    Matches the computation in shaders/plasticity.comp.
+    Deterministic CPU reference implementation of the documented three-factor
+    reward-modulated Hebbian rule. Matches shaders/plasticity.comp exactly:
+        delta_w = lr * reward * (a_pre * a_post - decay * w)
+    where a_post is the postsynaptic (CSR row owner) activation of each synapse.
     """
     M = len(weights)
     new_weights = np.copy(weights)
+    pre_act = np.asarray(pre_activations, dtype=np.float64)
+    post_act = np.asarray(post_activations, dtype=np.float64)
+    # CSR row (postsynaptic neuron) owning each synapse k.
+    post_idx = np.searchsorted(np.asarray(row_offsets), np.arange(M), side="right") - 1
 
     for k in range(M):
-        pre_idx = col_indices[k]
-        a_pre = float(pre_activations[pre_idx])
+        pre_idx = int(col_indices[k])
+        a_pre = float(pre_act[pre_idx])
+        a_post = float(post_act[int(post_idx[k])])
         w = float(weights[k])
-        delta_w = learning_rate * reward * (a_pre - weight_decay * w)
+        delta_w = learning_rate * reward * (a_pre * a_post - weight_decay * w)
         new_w = float(np.clip(w + delta_w, min_weight, max_weight))
         new_weights[k] = new_w
 

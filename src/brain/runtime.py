@@ -119,12 +119,12 @@ class BrainRuntime:
 
         # Execute LIF step (Persistent GPU or CPU)
         if self.gpu_engine is not None and self.use_gpu:
-            new_pot, new_spk = self.gpu_engine.run_step_persistent(
+            new_pot, new_spk, new_ref = self.gpu_engine.run_step_persistent(
                 external_inputs=ext_inputs,
                 readback=True
             )
-            # Update refractory locally for tracking
-            new_ref = np.where(new_spk > 0.5, 2, np.maximum(0, ref_in - 1)).astype(np.int32)
+            # Authoritative GPU refractory counters are used directly (P4/P5:
+            # never recompute GPU state locally).
         else:
             new_pot, new_spk, new_ref = cpu_lif_step(
                 self.graph.row_offsets,
@@ -166,11 +166,17 @@ class BrainRuntime:
         synapses_updated = 0
         if self.enable_plasticity and abs(reward) > 1e-4:
             if self.gpu_engine is not None and self.use_gpu:
+                # P4: the persistent step's ping-pong copy already overwrote the
+                # prev_spikes buffer with S(t); restore true S(t-1) so the
+                # three-factor rule sees identical pre/post on CPU and GPU,
+                # then re-upload S(t) to leave next-step state intact.
+                self.gpu_engine.upload_buffer_data("prev_spikes", prev_spikes)
                 updated_weights = self.gpu_engine.run_plasticity_persistent(
                     learning_rate=0.05,
                     reward=reward,
                     readback=True
                 )
+                self.gpu_engine.upload_buffer_data("prev_spikes", new_spk)
                 if updated_weights is not None:
                     self.graph.weights = updated_weights
                 synapses_updated = len(self.graph.weights)
@@ -227,6 +233,9 @@ class BrainRuntime:
             spikes=self.state.spikes,
             refractory_steps=self.state.refractory_steps,
             activations=self.state.activations,
+            attention=self.state.attention,
+            goal_embedding=self.state.goal_embedding,
+            active_memory_refs=np.array(self.state.active_memory_refs, dtype=str),
             prediction_error=self.state.prediction_error,
             predicted_reward=self.state.predicted_reward,
             current_reward=self.state.current_reward,
@@ -256,6 +265,12 @@ class BrainRuntime:
         self.state.spikes = np.copy(data["spikes"])
         self.state.refractory_steps = np.copy(data["refractory_steps"])
         self.state.activations = np.copy(data["activations"])
+        if "attention" in data and len(data["attention"]) == len(self.state.activations):
+            self.state.attention = np.copy(data["attention"])
+        if "goal_embedding" in data:
+            self.state.goal_embedding = np.copy(data["goal_embedding"])
+        if "active_memory_refs" in data:
+            self.state.active_memory_refs = [str(x) for x in list(data["active_memory_refs"])]
         self.state.prediction_error = float(data["prediction_error"])
         self.state.predicted_reward = float(data["predicted_reward"])
         self.state.current_reward = float(data["current_reward"])

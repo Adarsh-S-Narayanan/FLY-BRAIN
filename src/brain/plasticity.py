@@ -6,12 +6,14 @@ class PlasticityEngine:
     def __init__(
         self,
         learning_rate: float = 0.05,
-        weight_decay: float = 0.005,
+        weight_decay: float = 0.01,
         min_weight: float = 0.01,
         max_weight: float = 1.0,
         prune_threshold: float = 0.02,
         rewire_rate: float = 0.01
     ):
+        # Defaults match shaders/plasticity.comp + cpu_reference.cpu_plasticity_step
+        # so CPU-runtime and GPU-runtime plasticity are the same rule.
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.min_weight = min_weight

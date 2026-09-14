@@ -393,8 +393,8 @@ class VulkanComputeEngine:
         vk.vkUnmapMemory(self.device, p_mem)
         self.persistent_buffers["brain_params"] = {"buf": p_buf, "mem": p_mem, "size": p_sz, "bytes": len(params_bytes)}
 
-        # Plasticity params buffer: M, lr, reward, weight_decay, min_w, max_w
-        plas_bytes = struct.pack('ifffff', M, 0.05, 0.0, 0.01, 0.01, 1.0)
+        # Plasticity params buffer: M, N, lr, reward, weight_decay, min_w, max_w
+        plas_bytes = struct.pack('iifffff', M, N, 0.05, 0.0, 0.01, 0.01, 1.0)
         pl_buf, pl_mem, pl_sz = self._create_buffer(len(plas_bytes), vk.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
         self.persistent_buffers["plasticity_params"] = {"buf": pl_buf, "mem": pl_mem, "size": pl_sz, "bytes": len(plas_bytes)}
 
@@ -471,10 +471,12 @@ class VulkanComputeEngine:
         v_rest: float = 0.0,
         t_ref: int = 2,
         readback: bool = True
-    ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+    ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]:
         """
         Executes one LIF simulation step entirely on GPU using persistent resources.
         Zero buffer allocation or descriptor reallocation.
+        Returns authoritative GPU state (potentials, spikes, refractory) — callers
+        must use the returned refractory counters, never recompute them locally.
         """
         if not self.persistent_buffers:
             raise RuntimeError("No circuit loaded in Vulkan compute engine!")
@@ -552,7 +554,8 @@ class VulkanComputeEngine:
             # Read back state from host-coherent buffer
             pot_mem = self.persistent_buffers["potentials_out"]["mem"]
             spk_mem = self.persistent_buffers["spikes_out"]["mem"]
-            
+            ref_mem = self.persistent_buffers["refractory_out"]["mem"]
+
             ptr = vk.vkMapMemory(self.device, pot_mem, 0, N * 4, 0)
             pot_out = np.frombuffer(bytes(ptr[0:N * 4]), dtype=np.float32).copy()
             vk.vkUnmapMemory(self.device, pot_mem)
@@ -560,9 +563,13 @@ class VulkanComputeEngine:
             ptr = vk.vkMapMemory(self.device, spk_mem, 0, N * 4, 0)
             spk_out = np.frombuffer(bytes(ptr[0:N * 4]), dtype=np.float32).copy()
             vk.vkUnmapMemory(self.device, spk_mem)
-            return pot_out, spk_out
-        
-        return None, None
+
+            ptr = vk.vkMapMemory(self.device, ref_mem, 0, N * 4, 0)
+            ref_out = np.frombuffer(bytes(ptr[0:N * 4]), dtype=np.int32).copy()
+            vk.vkUnmapMemory(self.device, ref_mem)
+            return pot_out, spk_out, ref_out
+
+        return None, None, None
 
     def run_plasticity_persistent(
         self,
@@ -583,7 +590,9 @@ class VulkanComputeEngine:
         t0 = time.perf_counter_ns()
 
         # Update plasticity parameters
-        pl_bytes = struct.pack('ifffff', M, learning_rate, reward, weight_decay, min_weight, max_weight)
+        M = self.num_synapses
+        N = self.num_neurons
+        pl_bytes = struct.pack('iifffff', M, N, learning_rate, reward, weight_decay, min_weight, max_weight)
         pl_mem = self.persistent_buffers["plasticity_params"]["mem"]
         ptr = vk.vkMapMemory(self.device, pl_mem, 0, len(pl_bytes), 0)
         ptr[0:len(pl_bytes)] = pl_bytes
@@ -673,7 +682,7 @@ class VulkanComputeEngine:
             self.upload_buffer_data("potentials_in", potentials_in)
             self.upload_buffer_data("refractory_in", np.zeros(N, dtype=np.int32))
             
-        pot_out, spk_out = self.run_step_persistent(
+        pot_out, spk_out, _ = self.run_step_persistent(
             external_inputs=external_inputs,
             decay=decay,
             threshold=threshold,

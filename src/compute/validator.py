@@ -56,11 +56,12 @@ def run_cpu_gpu_validation(
 
             step_passed = (max_pot_abs <= abs_tolerance) and (max_act_abs <= abs_tolerance)
 
-            # 2. Plasticity step
+            # 2. Plasticity step (three-factor: pre * post * reward - decay)
             reward = float(rng.uniform(0.5, 1.0))
             lr = 0.05
             cpu_w = cpu_plasticity_step(
-                circuit.col_indices, circuit.weights, prev_act,
+                circuit.col_indices, circuit.weights, prev_act, cpu_act,
+                circuit.row_offsets,
                 learning_rate=lr, reward=reward
             )
             if vk_engine is not None:

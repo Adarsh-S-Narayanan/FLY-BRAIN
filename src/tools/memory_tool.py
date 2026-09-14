@@ -56,8 +56,11 @@ class RememberConnector(ToolConnector):
 
         if "concept" in params:
             concept = str(params["concept"])
-            dummy_emb = np.random.RandomState(step).randn(16).astype(np.float32)
-            self.mem.store_concept(concept, f"Concept formed at step {step}", dummy_emb, associations=obs)
+            # Deterministic seeded placeholder embedding (NOT a neural embedding
+            # model output); provenance recorded in the description string.
+            placeholder_emb = np.random.RandomState(step).randn(16).astype(np.float32)
+            self.mem.store_concept(concept, f"Seeded placeholder embedding formed at step {step}",
+                                   placeholder_emb, associations=obs)
 
         return {
             "memory_id": ep_id,

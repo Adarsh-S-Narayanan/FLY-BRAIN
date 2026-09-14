@@ -23,6 +23,7 @@ class StructuralMutator:
         if count > 0:
             deltas = self.rng.normal(0.0, scale, count).astype(np.float32)
             graph.weights[mask] = np.clip(graph.weights[mask] + deltas, 0.01, 1.0)
+            graph.graph_hash = graph.compute_graph_hash()
         return {
             "type": "weight_perturbation",
             "synapses_modified": count,
@@ -50,6 +51,8 @@ class StructuralMutator:
         graph.row_offsets = np.array(new_row_offsets, dtype=np.int32)
         graph.col_indices = np.array(new_col_indices, dtype=np.int32)
         graph.weights = np.array(new_weights, dtype=np.float32)
+        graph.validate_invariants()
+        graph.graph_hash = graph.compute_graph_hash()
         return {
             "type": "synaptic_pruning",
             "pruned_synapses": pruned,
@@ -94,6 +97,8 @@ class StructuralMutator:
         graph.row_offsets = np.array(new_row_offsets, dtype=np.int32)
         graph.col_indices = np.array(new_col_indices, dtype=np.int32)
         graph.weights = np.array(new_weights, dtype=np.float32)
+        graph.validate_invariants()
+        graph.graph_hash = graph.compute_graph_hash()
         return {
             "type": "synaptic_rewiring",
             "new_synapses_added": added,
@@ -152,6 +157,8 @@ class StructuralMutator:
         graph.row_offsets = np.array(new_row_offsets, dtype=np.int32)
         graph.col_indices = np.array(new_col_indices, dtype=np.int32)
         graph.weights = np.array(new_weights, dtype=np.float32)
+        graph.validate_invariants()
+        graph.graph_hash = graph.compute_graph_hash()
 
         return {
             "type": "population_growth",
@@ -161,12 +168,20 @@ class StructuralMutator:
         }
 
     def clone_graph(self, graph: ConnectomeGraph) -> ConnectomeGraph:
-        return ConnectomeGraph(
+        # P9: preserve graph subclass (mode/provenance), population registry,
+        # and metadata so candidates remain the same kind of graph as the parent.
+        cls = type(graph)
+        clone = cls(
             neuron_ids=graph.neuron_ids.copy(),
             coordinates=graph.coordinates.copy(),
             tbars=graph.tbars.copy(),
             sides=list(graph.sides),
             row_offsets=graph.row_offsets.copy(),
             col_indices=graph.col_indices.copy(),
-            weights=graph.weights.copy()
+            weights=graph.weights.copy(),
+            populations=graph.populations,
+            provenance_metadata=dict(graph.provenance_metadata),
         )
+        # Recompute: never propagate a possibly stale hash.
+        clone.graph_hash = clone.compute_graph_hash()
+        return clone

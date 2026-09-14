@@ -64,15 +64,17 @@ flowchart TD
 To guarantee technical rigor and scientific honesty, connectome networks in FlyBrain are strictly separated into three isolated modes governed by `src/connectome/types.py`:
 
 ### `GraphMode.REAL` (Status: `VERIFIED`)
-- **Biological Source:** Authentic Janelia MaleCNS v1.0 biological synaptic connection table (`malecns/data-raw/malecns_v1_0_connections.csv`).
-- **Characteristics:** Contains 99,301 verified synaptic connection pairs across 2,048 hub bodies.
+- **Biological Source:** Authentic Janelia MaleCNS v1.0 biological synaptic connection table (`malecns/data-raw/malecns_v1_0_connections.csv`): 99,301 rows across 2,045 unique bodies.
+- **Characteristics:** Contains only empirical EM-reconstructed edges among the sampled circuit. A sampled neuron with no in-sample biological edge stays disconnected: REAL mode never receives invented fallback edges (regression-tested in `tests/test_provenance.py`).
 - **Topology:** Sparse, non-symmetric, heavy-tailed degree distribution with natural biological recurrent loops and modular clustering.
 - **Invariants:** Every edge represents an empirical electron microscopy reconstructed synapse.
 
 ### `GraphMode.SPATIAL_SURROGATE` (Status: `SURROGATE`)
 - **Biological Source:** 125,506 empirical somas, hemilateral sides, and presynaptic T-bar capacities (`malecns/data-raw/2023-27-2 soma_sides.csv`).
 - **Characteristics:** Connects neurons using 3D Euclidean spatial proximity via a balanced k-d tree. Synaptic capacities are scaled by presynaptic T-bars.
-- **Contract:** Labeled strictly as `SURROGATE` in all telemetry, APIs, and manifests. Never presented as authentic biological synaptic pairs.
+- **Contract:** Labeled strictly as `SURROGATE` in all telemetry, APIs, and manifests. Never presented as authentic biological synaptic pairs. Surrogate edges cannot enter `REAL` mode (loader raises instead of falling back).
+
+Population (functional-group) assignments in all modes are coordinate heuristics, explicitly flagged `heuristic: true`, `classification_method: coordinate_heuristic`, `annotation_status: no_em_annotation_available`, and can never carry `VERIFIED` status (`tests/test_provenance.py`).
 
 ### `GraphMode.SYNTHETIC_TEST` (Status: `EXPERIMENTAL`)
 - **Characteristics:** Deterministic synthetic network generated with explicit recurrent loops and input/output pathways.
@@ -87,6 +89,13 @@ FlyBrain implements genuine classical Leaky Integrate-and-Fire (LIF) dynamics ac
 ### 3.1 Mathematical Formulation
 For each neuron $i \in \{0, \dots, N-1\}$ at simulation step $t$:
 
+**Unit contract:** normalized simulation units by default ($\lambda=0.85$, $V_{\text{thresh}}=1.0$,
+$V_{\text{reset}}=0.0$, $V_{\text{rest}}=0.0$, $t_{\text{ref}}=2$). Millivolt semantics are obtained
+by passing explicit parameters with the reference mapping $V_{\text{norm}} = (V_{\text{mV}} + 70.0)/20.0$
+(rest $-70$ mV $\to 0.0$, threshold $-50$ mV $\to 1.0$). CPU (`cpu_lif_step`), Vulkan shader
+(`brain_step.comp`), and runtime use exactly these parametrized semantics; parity is validated,
+not assumed (`tests/test_lif.py`, `validate-vulkan`, max diff $< 1.79 \times 10^{-7}$).
+
 1. **Synaptic Current Summation:**
    $$I_{\text{syn}, i}(t) = \sum_{j \in \text{Pre}(i)} W_{ij} \cdot S_j(t-1)$$
    where $W_{ij}$ is the synaptic conductance weight and $S_j(t-1) \in \{0.0, 1.0\}$ is the presynaptic binary spike event.
@@ -99,9 +108,9 @@ For each neuron $i \in \{0, \dots, N-1\}$ at simulation step $t$:
    The neuron is inhibited from integrating synaptic currents or emitting action potentials.
 
 3. **Subthreshold Leaky Integration:**
-   If $R_i(t-1) == 0$:
-   $$V_{\text{cand}, i} = V_{\text{rest}} + \left(V_i(t-1) - V_{\text{rest}}\right) \cdot \lambda + I_{\text{syn}, i}(t) + I_{\text{ext}, i}(t)$$
-   where $\lambda = \exp(-\Delta t / \tau_m) \approx 0.85$ is the membrane leak factor.
+    If $R_i(t-1) == 0$:
+    $$V_{\text{cand}, i} = V_{\text{rest}} + \left(V_i(t-1) - V_{\text{rest}}\right) \cdot \lambda + I_{\text{syn}, i}(t) + I_{\text{ext}, i}(t)$$
+    where $\lambda$ is the membrane leak factor (default $0.85$).
 
 4. **Action Potential Threshold & Hard Reset:**
    If $V_{\text{cand}, i} \ge V_{\text{thresh}}$ (typically $-50.0 \text{ mV}$ or normalized $1.0$):
@@ -147,9 +156,12 @@ Unlike naive implementations that reallocate buffers and rebuild pipelines on ev
    - Ping-pong synchronization is achieved via single-submit persistent command buffers and memory pipeline barriers (`VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT`).
 
 3. **Synaptic Plasticity Pipeline (`shaders/plasticity.comp`):**
-   - Implements three-factor reward-modulated Hebbian learning:
-     $$\Delta W_{ij} = \eta \cdot r \cdot \left(A_{\text{pre}, j} \cdot A_{\text{post}, i} - \beta \cdot W_{ij}\right)$$
-   - Operates in-place on the GPU-resident `Weights` buffer.
+    - Implements the documented three-factor reward-modulated Hebbian rule identically on CPU and GPU:
+      $$\Delta W_{ij} = \eta \cdot r \cdot \left(A_{\text{pre}, j} \cdot A_{\text{post}, i} - \beta \cdot W_{ij}\right)$$
+      with $\eta=0.05$, $\beta=0.01$, clamp $[0.01, 1.0]$. The shader resolves the postsynaptic
+      (CSR row-owner) neuron per synapse via binary search; the runtime feeds identical
+      pre/post spikes to both paths (12-step trajectory parity: spikes exact, weights $< 2 \times 10^{-8}$).
+    - Operates in-place on the GPU-resident `Weights` buffer.
 
 ---
 
@@ -185,10 +197,38 @@ Experiments in FlyBrain are completely reproducible and tracked cryptographicall
 
 ## 7. Automated Acceptance Matrix & Verification
 
-Release readiness is enforced by an automated 19-category acceptance matrix (`scripts/run_acceptance_matrix.py`):
+Release readiness is enforced by an automated 25-category acceptance matrix (`scripts/run_acceptance_matrix.py`):
 
 ```bash
 flybrain acceptance-matrix
 ```
 
-All 19 categories evaluate dynamically to `PASS`, verifying repository cleanliness, biological provenance manifest integrity, contract separation, LIF dynamics, refractory invariance, Vulkan persistence, CPU-Vulkan numerical parity, thread safety, and documentation consistency.
+All 25 categories evaluate behavioral assertions to `PASS`: the 19 core gates (repository cleanliness,
+provenance integrity, contract separation, LIF dynamics, refractory/reset invariance, Vulkan persistence,
+CPU-Vulkan parity, thread safety, deterministic replication, model honesty, plasticity, UI, end-to-end,
+documentation consistency) plus 6 artificial-life gates (population branch-replay determinism, developmental
+structural integrity, genome mutation/crossover provenance, overlapping reproduction with parents alive at
+every birth, cultural transmission gain, zero surrogate edges in REAL mode).
+
+---
+
+## 8. Artificial-Life Layer
+
+On top of the connectome core sits a small-scale, CPU-run artificial-life stack (details + honest
+status split in `docs/alife_architecture.md`):
+
+- `src/common/`: seed bundles, SHA-256 stable IDs, 26-type event sourcing, state hashing.
+- `src/genome/`: versioned genome schema v1.0 with deterministic mutation/crossover + provenance records.
+- `src/development/`: neurogenesis → differentiation → migration → axon/dendrite growth →
+  synaptogenesis → pruning → apoptosis, with graph-invariant validation after every operation.
+- `src/world/` + `src/organism/`: deterministic grid world (grazing, hazards, tracked regrowth influx)
+  and organisms with lifecycle stages, metabolism books, and sleep/dream replay of real episodes.
+- `src/population/` + `src/culture/`: overlapping generations, sexual/asexual reproduction with energy
+  costs, Pareto selection, teacher→student transmission with measured gain and provenance chains.
+- `src/agents/protocols.py`: deterministic scripted teacher (cultural channel only); the LLM teacher
+  slot raises `MODEL_UNAVAILABLE` instead of faking inference.
+- Canonical experiment `scripts/run_alife_experiment.py --population 10 --ticks 150 --seed 7`:
+  8 living, 4 births, 6 deaths, generations `[0, 1]` coexisting, 131 teaching sessions,
+  bit-exact replay verified (`--verify`).
+- Live colony data API: `/api/colony`, `/api/colony/organism/{id}`, `/api/colony/lineage`
+  (serves real simulation state; no fabricated metrics).

@@ -22,6 +22,17 @@ DEFAULT_SOMA_PATH = os.path.join("malecns", "data-raw", "2023-27-2 soma_sides.cs
 DEFAULT_CONNECTIONS_PATH = os.path.join("malecns", "data-raw", "malecns_v1_0_connections.csv")
 CACHE_DIR = os.path.join("diagnostics", "connectome_cache")
 
+# Bump whenever graph construction semantics change; stale caches are rebuilt.
+LOADER_VERSION = 2
+
+
+def _file_sha256(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
+
 def load_raw_neurons(csv_path: str = DEFAULT_SOMA_PATH) -> List[NeuronMetadata]:
     """Loads all authentic biological neuron somas from Janelia MaleCNS v1.0 data."""
     if not os.path.exists(csv_path):
@@ -86,6 +97,10 @@ def build_population_registry(
         neuron_indices=vis_idx,
         count=len(vis_idx),
         provenance_status=ProvenanceStatus.DERIVED,
+        classification_method="coordinate_heuristic",
+        biological_source="none",
+        annotation_status="no_em_annotation_available",
+        heuristic=True,
         confidence=0.92
     ))
 
@@ -104,6 +119,10 @@ def build_population_registry(
         neuron_indices=aud_idx,
         count=len(aud_idx),
         provenance_status=ProvenanceStatus.DERIVED,
+        classification_method="coordinate_heuristic",
+        biological_source="none",
+        annotation_status="no_em_annotation_available",
+        heuristic=True,
         confidence=0.88
     ))
 
@@ -122,6 +141,10 @@ def build_population_registry(
         neuron_indices=olf_idx,
         count=len(olf_idx),
         provenance_status=ProvenanceStatus.DERIVED,
+        classification_method="coordinate_heuristic",
+        biological_source="none",
+        annotation_status="no_em_annotation_available",
+        heuristic=True,
         confidence=0.90
     ))
 
@@ -140,6 +163,10 @@ def build_population_registry(
         neuron_indices=desc_idx,
         count=len(desc_idx),
         provenance_status=ProvenanceStatus.DERIVED,
+        classification_method="coordinate_heuristic",
+        biological_source="none",
+        annotation_status="no_em_annotation_available",
+        heuristic=True,
         confidence=0.94
     ))
 
@@ -155,6 +182,10 @@ def build_population_registry(
         neuron_indices=mot_idx,
         count=len(mot_idx),
         provenance_status=ProvenanceStatus.DERIVED,
+        classification_method="coordinate_heuristic",
+        biological_source="none",
+        annotation_status="no_em_annotation_available",
+        heuristic=True,
         confidence=0.86
     ))
 
@@ -170,6 +201,10 @@ def build_population_registry(
         neuron_indices=mem_idx,
         count=len(mem_idx),
         provenance_status=ProvenanceStatus.DERIVED,
+        classification_method="coordinate_heuristic",
+        biological_source="none",
+        annotation_status="no_em_annotation_available",
+        heuristic=True,
         confidence=0.89
     ))
 
@@ -187,6 +222,10 @@ def build_population_registry(
         neuron_indices=mod_idx,
         count=len(mod_idx),
         provenance_status=ProvenanceStatus.DERIVED,
+        classification_method="coordinate_heuristic",
+        biological_source="none",
+        annotation_status="no_em_annotation_available",
+        heuristic=True,
         confidence=0.85
     ))
 
@@ -200,6 +239,10 @@ def build_population_registry(
         neuron_indices=inter_idx,
         count=len(inter_idx),
         provenance_status=ProvenanceStatus.DERIVED,
+        classification_method="coordinate_heuristic",
+        biological_source="none",
+        annotation_status="no_em_annotation_available",
+        heuristic=True,
         confidence=0.90
     ))
 
@@ -246,9 +289,12 @@ def build_real_connectome(
     tbars = np.array([n.tbars for n in selected], dtype=np.int32)
     sides = [n.side for n in selected]
 
-    # 2. Ingest real synaptic connections
+    # 2. Ingest real synaptic connections.
+    # R5/R6: REAL mode contains ONLY empirical MaleCNS edges. A neuron with no
+    # selected biological outgoing edge stays disconnected; no invented edges.
     adjacency: Dict[int, Dict[int, float]] = {i: {} for i in range(N)}
-    
+    empirical_pairs = 0
+
     with open(connections_path, mode="r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -256,7 +302,7 @@ def build_real_connectome(
                 pre_id = int(row["pre_body_id"])
                 post_id = int(row["post_body_id"])
                 syn_count = int(row["synapse_count"])
-                
+
                 if pre_id in body_to_idx and post_id in body_to_idx:
                     pre_idx = body_to_idx[pre_id]
                     post_idx = body_to_idx[post_id]
@@ -264,18 +310,9 @@ def build_real_connectome(
                         # Normalized initial biological weight
                         w = min(0.8, 0.05 + 0.02 * syn_count)
                         adjacency[pre_idx][post_idx] = w
+                        empirical_pairs += 1
             except (ValueError, KeyError):
                 continue
-
-    # Ensure every neuron has minimal baseline connectivity if disconnected in hub sample
-    rng = np.random.RandomState(seed)
-    for i in range(N):
-        if not adjacency[i]:
-            # Connect to closest neighbor biologically
-            dists = np.linalg.norm(coordinates - coordinates[i], axis=1)
-            dists[i] = np.inf
-            nearest = int(np.argmin(dists))
-            adjacency[i][nearest] = 0.15
 
     # 3. Build CSR representation
     row_offsets = [0]
@@ -296,14 +333,23 @@ def build_real_connectome(
     # 4. Populations
     populations = build_population_registry(neuron_ids, coordinates, tbars, sides)
 
+    connected_sources = sum(1 for i in range(N) if adjacency[i])
     prov_meta = {
+        "mode": GraphMode.REAL.value,
+        "provenance_status": ProvenanceStatus.VERIFIED.value,
         "dataset_name": "Janelia MaleCNS",
         "version": "male-cns:v1.0",
         "soma_file": soma_path,
         "connections_file": connections_path,
+        "soma_sha256": _file_sha256(soma_path),
+        "connections_sha256": _file_sha256(connections_path),
         "total_source_neurons": len(neurons),
         "circuit_neurons": N,
-        "circuit_synapses": len(col_indices)
+        "circuit_synapses": len(col_indices),
+        "empirical_edge_count": int(empirical_pairs),
+        "surrogate_edge_count": 0,
+        "connected_sources": int(connected_sources),
+        "fallback_edges_added": 0,
     }
 
     return MaleCNSRealGraph(
@@ -379,8 +425,15 @@ def build_connectome_circuit(
 
     populations = build_population_registry(neuron_ids, coordinates, tbars, sides)
     prov_meta = {
+        "mode": GraphMode.SPATIAL_SURROGATE.value,
+        "provenance_status": ProvenanceStatus.SURROGATE.value,
         "dataset_name": "Janelia MaleCNS Spatial Surrogate",
         "method": "cKDTree Euclidean Spatial Proximity",
+        "soma_sha256": _file_sha256(DEFAULT_SOMA_PATH) if os.path.exists(DEFAULT_SOMA_PATH) else "unknown",
+        "circuit_neurons": N,
+        "circuit_synapses": len(col_indices),
+        "empirical_edge_count": 0,
+        "surrogate_edge_count": len(col_indices),
         "interaction_radius_nm": interaction_radius,
         "max_degree": max_degree
     }
@@ -470,7 +523,8 @@ def get_or_create_circuit(
         try:
             data = np.load(cache_path, allow_pickle=True)
             stored_mode = GraphMode(str(data["mode"]))
-            if stored_mode == mode and len(data["neuron_ids"]) == max_neurons:
+            version_ok = (str(data.get("loader_version", 1)) == str(LOADER_VERSION))
+            if stored_mode == mode and len(data["neuron_ids"]) == max_neurons and version_ok:
                 populations = build_population_registry(
                     data["neuron_ids"], data["coordinates"], data["tbars"], list(data["sides"])
                 )
@@ -479,7 +533,7 @@ def get_or_create_circuit(
                     MaleCNSSpatialSurrogateGraph if mode == GraphMode.SPATIAL_SURROGATE else
                     SyntheticTestGraph
                 )
-                return graph_cls(
+                graph = graph_cls(
                     neuron_ids=data["neuron_ids"],
                     coordinates=data["coordinates"],
                     tbars=data["tbars"],
@@ -490,17 +544,28 @@ def get_or_create_circuit(
                     graph_hash=str(data["graph_hash"]),
                     populations=populations
                 )
+                # C3: provenance must survive the cache round-trip.
+                is_real = (graph.mode == GraphMode.REAL)
+                is_surr = (graph.mode == GraphMode.SPATIAL_SURROGATE)
+                graph.provenance_metadata = {
+                    "mode": graph.mode.value,
+                    "provenance_status": graph.provenance_status.value,
+                    "circuit_neurons": graph.num_neurons,
+                    "circuit_synapses": graph.num_synapses,
+                    "empirical_edge_count": graph.num_synapses if is_real else 0,
+                    "surrogate_edge_count": graph.num_synapses if is_surr else 0,
+                    "fallback_edges_added": 0,
+                    "from_cache": True,
+                    "loader_version": LOADER_VERSION,
+                }
+                return graph
         except Exception:
             pass
 
     # Build fresh graph according to mode
     if mode == GraphMode.REAL:
-        try:
-            graph = build_real_connectome(DEFAULT_CONNECTIONS_PATH, DEFAULT_SOMA_PATH, max_neurons=max_neurons, seed=seed)
-        except Exception as e:
-            print(f"[ConnectomeLoader] Fallback to spatial surrogate due to: {e}")
-            neurons = load_raw_neurons(DEFAULT_SOMA_PATH)
-            graph = build_connectome_circuit(neurons, max_neurons=max_neurons, seed=seed)
+        # R6: never silently substitute a surrogate when REAL was requested.
+        graph = build_real_connectome(DEFAULT_CONNECTIONS_PATH, DEFAULT_SOMA_PATH, max_neurons=max_neurons, seed=seed)
     elif mode == GraphMode.SPATIAL_SURROGATE:
         neurons = load_raw_neurons(DEFAULT_SOMA_PATH)
         graph = build_connectome_circuit(neurons, max_neurons=max_neurons, seed=seed)
@@ -520,6 +585,7 @@ def get_or_create_circuit(
         col_indices=graph.col_indices,
         weights=graph.weights,
         graph_hash=graph.graph_hash,
-        mode=graph.mode.value
+        mode=graph.mode.value,
+        loader_version=np.array(LOADER_VERSION),
     )
     return graph

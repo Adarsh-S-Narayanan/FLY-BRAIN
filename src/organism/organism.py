@@ -263,7 +263,19 @@ class Organism:
                       "refractory": self.brain.state.refractory_steps.tolist(),
                       "activations": self.brain.state.activations.tolist(),
                       "step_count": self.brain.state.step_count,
-                      "total_spikes": self.brain.state.total_spikes},
+                      "total_spikes": self.brain.state.total_spikes,
+                      "prediction_error": self.brain.state.prediction_error,
+                      "predicted_reward": self.brain.state.predicted_reward,
+                      "current_reward": self.brain.state.current_reward,
+                      "drives": {"energy": self.brain.state.drives.energy,
+                                 "curiosity": self.brain.state.drives.curiosity,
+                                 "social": self.brain.state.drives.social,
+                                 "integrity": self.brain.state.drives.integrity},
+                      "maps": {k: [int(x) for x in getattr(self.brain, k, [])]
+                               for k in ("sensory_visual_indices", "sensory_audio_indices",
+                                         "sensory_olfactory_indices", "sensory_memory_indices",
+                                         "motor_speak_indices", "motor_act_indices",
+                                         "motor_image_indices", "motor_remember_indices")}},
             "dev": {"cell_types": self.dev.cell_types, "birth_ticks": self.dev.birth_ticks,
                     "lineage_ids": self.dev.lineage_ids,
                     "developmental_states": self.dev.developmental_states,
@@ -308,6 +320,18 @@ class Organism:
         org.brain.state.activations = np.array(b["activations"], dtype=np.float32)
         org.brain.state.step_count = b["step_count"]; org.brain.state.total_spikes = b["total_spikes"]
         org.brain.state.num_neurons = graph.num_neurons
+        org.brain.state.prediction_error = float(b.get("prediction_error", 0.0))
+        org.brain.state.predicted_reward = float(b.get("predicted_reward", 0.0))
+        org.brain.state.current_reward = float(b.get("current_reward", 0.0))
+        for dk, dv in b.get("drives", {}).items():
+            if hasattr(org.brain.state.drives, dk):
+                setattr(org.brain.state.drives, dk, float(dv))
+        # P7: sensorimotor maps must be restored exactly; a grown brain's maps
+        # differ from a freshly built brain's maps at the same size.
+        import numpy as _np
+        for k, v in b.get("maps", {}).items():
+            if hasattr(org.brain, k):
+                setattr(org.brain, k, _np.array([int(x) for x in v], dtype=_np.int32))
         from src.development.engine import DevelopmentState
         d = snap["dev"]
         org.dev = DevelopmentState(cell_types=list(d["cell_types"]), birth_ticks=list(d["birth_ticks"]),

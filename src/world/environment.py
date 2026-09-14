@@ -115,6 +115,12 @@ class GridWorld:
                 "energy_injected": self.energy_injected}
 
     def restore(self, snap: Dict[str, Any]):
+        cfg = snap.get("config", {})
+        self.config = WorldConfig(width=int(cfg.get("width", 16)),
+                                  height=int(cfg.get("height", 16)),
+                                  n_resources=int(cfg.get("n_resources", 12)),
+                                  n_hazards=int(cfg.get("n_hazards", 4)),
+                                  world_seed=int(cfg.get("world_seed", 47)))
         self.tick = int(snap["tick"])
         self.resources = {(int(a), int(b)): float(c) for a, b, c in snap["resources"]}
         self.hazards = [(int(a), int(b)) for a, b in snap["hazards"]]

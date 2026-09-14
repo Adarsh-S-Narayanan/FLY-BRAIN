@@ -1,7 +1,9 @@
 import os
 import sqlite3
 import json
+import threading
 import time
+from contextlib import contextmanager
 import numpy as np
 from typing import List, Dict, Any, Optional
 from src.memory.working import WorkingMemory
@@ -16,12 +18,21 @@ class PersistentMemoryManager:
     """
     def __init__(self, db_path: str = DEFAULT_DB_PATH):
         self.db_path = db_path
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        self._lock = threading.RLock()
+        os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
         self.working = WorkingMemory(capacity=7)
         self._init_db()
 
+    @contextmanager
+    def _locked(self):
+        self._lock.acquire()
+        try:
+            yield
+        finally:
+            self._lock.release()
+
     def _init_db(self):
-        with sqlite3.connect(self.db_path) as conn:
+        with self._locked(), sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             # 1. Episodic memory table
             cursor.execute("""
@@ -94,7 +105,7 @@ class PersistentMemoryManager:
         prediction_error: float,
         outcome: Any
     ) -> int:
-        with sqlite3.connect(self.db_path) as conn:
+        with self._locked(), sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
             INSERT INTO episodic_memory (timestamp, step, observation, action, reward, prediction_error, outcome)
@@ -112,7 +123,7 @@ class PersistentMemoryManager:
             return cursor.lastrowid
 
     def get_recent_episodes(self, limit: int = 10) -> List[Dict[str, Any]]:
-        with sqlite3.connect(self.db_path) as conn:
+        with self._locked(), sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM episodic_memory ORDER BY id DESC LIMIT ?", (limit,))
@@ -123,7 +134,7 @@ class PersistentMemoryManager:
     def store_concept(self, concept: str, description: str, embedding: np.ndarray, associations: Optional[Dict] = None):
         emb_blob = np.asarray(embedding, dtype=np.float32).tobytes()
         assoc_str = json.dumps(associations or {})
-        with sqlite3.connect(self.db_path) as conn:
+        with self._locked(), sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
             INSERT INTO semantic_memory (concept, description, embedding, associations)
@@ -138,7 +149,7 @@ class PersistentMemoryManager:
     def query_semantic(self, query_emb: np.ndarray, top_k: int = 3) -> List[Dict[str, Any]]:
         query_vec = np.asarray(query_emb, dtype=np.float32).flatten()
         norm_q = np.linalg.norm(query_vec) + 1e-7
-        with sqlite3.connect(self.db_path) as conn:
+        with self._locked(), sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("SELECT id, concept, description, embedding, associations FROM semantic_memory")
@@ -159,7 +170,7 @@ class PersistentMemoryManager:
 
     # --- Skill Memory Operations ---
     def record_skill(self, skill_name: str, tool_sequence: List[str], success: bool):
-        with sqlite3.connect(self.db_path) as conn:
+        with self._locked(), sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT success_count, attempt_count FROM skill_memory WHERE skill_name=?", (skill_name,))
             row = cursor.fetchone()
@@ -179,7 +190,7 @@ class PersistentMemoryManager:
             conn.commit()
 
     def get_skills(self) -> List[Dict[str, Any]]:
-        with sqlite3.connect(self.db_path) as conn:
+        with self._locked(), sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM skill_memory ORDER BY success_count DESC")
@@ -210,7 +221,7 @@ class PersistentMemoryManager:
         seed_val = kwargs.get("seed", seed)
         action_val = kwargs.get("simulated_action", simulated_action)
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._locked(), sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
             INSERT INTO dream_memory (timestamp, seed, base_episode_id, simulated_action, counterfactual_reward, insight)
@@ -220,7 +231,7 @@ class PersistentMemoryManager:
             return cursor.lastrowid
 
     def get_recent_dreams(self, limit: int = 10) -> List[Dict[str, Any]]:
-        with sqlite3.connect(self.db_path) as conn:
+        with self._locked(), sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM dream_memory ORDER BY id DESC LIMIT ?", (limit,))
@@ -228,7 +239,7 @@ class PersistentMemoryManager:
 
     # --- Experiment History Operations ---
     def record_experiment(self, experiment_id: str, seed: int, config: Dict, results: Dict):
-        with sqlite3.connect(self.db_path) as conn:
+        with self._locked(), sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
             INSERT OR REPLACE INTO experiment_history (experiment_id, timestamp, seed, config, results)

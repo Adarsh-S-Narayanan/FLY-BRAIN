@@ -39,6 +39,8 @@ def main():
     soma_hash = file_hash(soma_csv)
 
     # Dependency manifest
+    import shutil
+    from src.trainer.cognitive import GGUF_MODEL_PATH as _llm_path
     dep_manifest = {
         "python_runtime": {
             "version": sys.version,
@@ -46,8 +48,7 @@ def main():
         },
         "vulkan_sdk": {
             "env_path": os.environ.get("VULKAN_SDK"),
-            "version": "1.4.357.0",
-            "glslc_path": "C:\\VulkanSDK\\1.4.357.0\\Bin\\glslc.exe"
+            "glslc_path": shutil.which("glslc")
         },
         "git_provenance": git_info,
         "biological_source_hashes": {
@@ -57,8 +58,8 @@ def main():
             }
         },
         "target_qwen_model": {
-            "path": "C:\\Users\\hcsme\\.cache\\huggingface\\hub\\models--unsloth--Qwen3-4B-GGUF\\snapshots\\22c9fc8a8c7700b76a1789366280a6a5a1ad1120\\Qwen3-4B-Q4_K_M.gguf",
-            "exists": os.path.exists("C:\\Users\\hcsme\\.cache\\huggingface\\hub\\models--unsloth--Qwen3-4B-GGUF\\snapshots\\22c9fc8a8c7700b76a1789366280a6a5a1ad1120\\Qwen3-4B-Q4_K_M.gguf")
+            "path": _llm_path,
+            "exists": bool(_llm_path) and os.path.exists(_llm_path)
         }
     }
     

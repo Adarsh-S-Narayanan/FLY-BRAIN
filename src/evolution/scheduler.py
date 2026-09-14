@@ -1,24 +1,27 @@
 import os
 import json
-import uuid
 import hashlib
 import numpy as np
 from typing import Dict, Any, List, Optional
 from src.connectome.types import ConnectomeGraph
 from src.brain.runtime import BrainRuntime
 from src.evolution.mutation import StructuralMutator
+from src.common.determinism import deterministic_id
 
 class EvolutionScheduler:
     """
     Parallel candidate evolution scheduler.
     Evaluates candidate brain variants on benchmark battery, records comprehensive metadata
     (parent ID, generation, mutation set, seed, score, hashes), and supports rollback.
+    All identity is deterministic (R8): no uuid4 in scientific records.
     """
-    def __init__(self, base_graph: ConnectomeGraph, history_file: str = "diagnostics/evolution_history.json"):
+    def __init__(self, base_graph: ConnectomeGraph, history_file: str = "diagnostics/evolution_history.json",
+                 seed: int = 100):
         self.current_graph = base_graph
         self.history_file = history_file
+        self.seed = int(seed)
         self.generation = 0
-        self.current_brain_id = f"brain_gen0_{str(uuid.uuid4())[:8]}"
+        self.current_brain_id = f"brain_gen0_{deterministic_id('scheduler', str(self.seed))[:8]}"
         self.history: List[Dict[str, Any]] = []
         os.makedirs(os.path.dirname(history_file), exist_ok=True)
 
@@ -88,7 +91,8 @@ class EvolutionScheduler:
                 mutations.append(mutator.mutate_weights(cand_graph, rate=0.04, scale=0.08))
 
             cand_score = self.evaluate_candidate(cand_graph, seed=cand_seed)
-            cand_id = f"brain_gen{self.generation}_c{c_idx}_{str(uuid.uuid4())[:6]}"
+            cand_id = (f"brain_gen{self.generation}_c{c_idx}_"
+                       f"{deterministic_id(str(self.seed), str(self.generation), str(c_idx))[:6]}")
             cand_hash = self._hash_graph(cand_graph)
 
             accepted = cand_score > best_score
@@ -149,3 +153,82 @@ class EvolutionScheduler:
     def save_history(self):
         with open(self.history_file, "w", encoding="utf-8") as f:
             json.dump(self.get_lineage(), f, indent=2)
+
+    def checkpoint_path(self) -> str:
+        base, _ = os.path.splitext(self.history_file)
+        return base + ".checkpoint.npz"
+
+    def save_checkpoint(self) -> str:
+        """Persists full resumable state: current graph, generation, IDs, seed."""
+        from src.connectome.types import PopulationMetadata, ProvenanceStatus
+        path = self.checkpoint_path()
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        pop_ser = {}
+        if self.current_graph.populations is not None:
+            for name, pm in self.current_graph.populations.populations.items():
+                pop_ser[name] = {
+                    "indices": [int(x) for x in pm.neuron_indices],
+                    "ids": [int(x) for x in pm.neuron_ids] if len(pm.neuron_ids) == len(pm.neuron_indices) else [],
+                    "selection_rule": pm.selection_rule,
+                    "confidence": float(pm.confidence),
+                }
+        np.savez_compressed(
+            path,
+            neuron_ids=self.current_graph.neuron_ids,
+            coordinates=self.current_graph.coordinates,
+            tbars=self.current_graph.tbars,
+            sides=np.array(self.current_graph.sides),
+            row_offsets=self.current_graph.row_offsets,
+            col_indices=self.current_graph.col_indices,
+            weights=self.current_graph.weights,
+            mode=np.array(self.current_graph.mode.value),
+            generation=np.array(self.generation),
+            brain_id=np.array(self.current_brain_id),
+            seed=np.array(self.seed),
+            history_json=np.array(json.dumps(self.history)),
+            populations_json=np.array(json.dumps(pop_ser)),
+        )
+        self.save_history()
+        return path
+
+    @classmethod
+    def load_checkpoint(cls, checkpoint_file: str,
+                        history_file: str = "diagnostics/evolution_history.json") -> "EvolutionScheduler":
+        """Resumes a scheduler bit-exactly; continued trajectory matches uninterrupted run."""
+        from src.connectome.types import (GraphMode, MaleCNSRealGraph,
+                                          MaleCNSSpatialSurrogateGraph, SyntheticTestGraph,
+                                          PopulationMetadata, PopulationRegistry,
+                                          ProvenanceStatus)
+        data = np.load(checkpoint_file, allow_pickle=True)
+        mode = GraphMode(str(data["mode"]))
+        cls_map = {GraphMode.REAL: MaleCNSRealGraph,
+                   GraphMode.SPATIAL_SURROGATE: MaleCNSSpatialSurrogateGraph,
+                   GraphMode.SYNTHETIC_TEST: SyntheticTestGraph}
+        ids = np.array(data["neuron_ids"])
+        registry = PopulationRegistry()
+        pop_ser = json.loads(str(data["populations_json"]))
+        for name, ps in pop_ser.items():
+            idx = np.array(ps["indices"], dtype=np.int32)
+            registry.register(PopulationMetadata(
+                name=name, source="checkpoint-resume",
+                selection_rule=ps.get("selection_rule", ""),
+                neuron_ids=ids[idx] if len(idx) else np.array([], dtype=np.int64),
+                neuron_indices=idx, count=len(idx),
+                provenance_status=ProvenanceStatus.DERIVED,
+                confidence=float(ps.get("confidence", 0.9)),
+            ))
+        graph = cls_map[mode](
+            neuron_ids=ids,
+            coordinates=np.array(data["coordinates"]),
+            tbars=np.array(data["tbars"]),
+            sides=list(data["sides"]),
+            row_offsets=np.array(data["row_offsets"]),
+            col_indices=np.array(data["col_indices"]),
+            weights=np.array(data["weights"]),
+            populations=registry,
+        )
+        sched = cls(base_graph=graph, history_file=history_file, seed=int(data["seed"]))
+        sched.generation = int(data["generation"])
+        sched.current_brain_id = str(data["brain_id"])
+        sched.history = json.loads(str(data["history_json"]))
+        return sched

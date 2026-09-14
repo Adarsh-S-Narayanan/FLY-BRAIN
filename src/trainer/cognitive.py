@@ -5,10 +5,14 @@ import subprocess
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, asdict
 
-HOST_PYTHON = r"C:\Program Files\Python314\python.exe"
+# R9: no hard-coded machine paths. Resolution order: explicit arg > env >
+# project-local models/ dir > unavailable. Host python defaults to this interpreter.
+HOST_PYTHON = os.environ.get("FLYBRAIN_HOST_PYTHON", sys.executable)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_LOCAL_MODEL = os.path.join(_PROJECT_ROOT, "models", "qwen3-4b-q4_k_m.gguf")
 GGUF_MODEL_PATH = os.environ.get(
     "FLYBRAIN_LLM_PATH",
-    r"C:\Users\hcsme\.cache\huggingface\hub\models--unsloth--Qwen3-4B-GGUF\snapshots\22c9fc8a8c7700b76a1789366280a6a5a1ad1120\Qwen3-4B-Q4_K_M.gguf"
+    _LOCAL_MODEL if os.path.exists(_LOCAL_MODEL) else ""
 )
 
 @dataclass
@@ -46,9 +50,10 @@ class CognitiveTrainer:
     The LLM never replaces or directly mutates the connectome brain state.
     """
     def __init__(self, model_path: str = GGUF_MODEL_PATH):
-        self.model_path = model_path
+        self.model_path = model_path or ""
         self.host_python = HOST_PYTHON
-        self.model_available = os.path.exists(model_path) and os.path.exists(self.host_python)
+        self.model_available = bool(self.model_path) and os.path.exists(self.model_path) \
+            and bool(self.host_python) and os.path.exists(self.host_python)
 
     @property
     def model_status(self) -> str:
@@ -68,15 +73,16 @@ class CognitiveTrainer:
         drives_state: Dict[str, float],
         available_tasks: Optional[List[Dict[str, Any]]] = None
     ) -> CurriculumProposal:
-        """Proposes next curriculum step based on drives and pedagogical heuristics."""
+        """Rule-based curriculum proposal. NEVER labeled as LLM inference:
+        status is RULE_BASED, with the model availability recorded separately."""
         task_name = available_tasks[0].get("name", "basic_foraging") if available_tasks else "basic_foraging"
         return CurriculumProposal(
             target_skill=task_name,
             target_tool="vision_tracker",
             difficulty_level=1,
-            rationale="Baseline exploratory task recommended.",
+            rationale=f"Rule-based exploratory task (local model: {self.model_status}).",
             recommended_sensory_stimulus={"visual": 0.5},
-            status=self.model_status
+            status="RULE_BASED"
         )
 
     def evaluate_behavior(

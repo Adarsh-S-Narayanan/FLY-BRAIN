@@ -181,10 +181,12 @@ def get_dreams(limit: int = 10):
     return engine.memory.get_recent_dreams(limit=limit)
 
 @app.post("/api/dreams/replay")
-def post_dream_replay(mode: str = "deterministic", count: int = 2):
+def post_dream_replay(mode: str = "deterministic", count: int = 2, seed: Optional[int] = None):
     engine = get_engine()
+    # R8: default seed derives deterministically from engine state, never wall-clock.
+    dream_seed = int(seed) if seed is not None else int(engine.brain.state.step_count)
     with engine.lock:
-        res = engine.dream_engine.run_dream_cycle(mode=mode, seed=int(time.time()), num_episodes_to_replay=count)
+        res = engine.dream_engine.run_dream_cycle(mode=mode, seed=dream_seed, num_episodes_to_replay=count)
     return res
 
 @app.get("/api/tools")

@@ -202,9 +202,9 @@ def main():
         for g in range(args.generations):
             evo.run_generation(num_candidates=4, seed=args.seed + g*10)
     elif target == "test":
-        import tests.test_suite as ts
         import unittest
-        suite = unittest.TestLoader().loadTestsFromTestCase(ts.TestFlyBrainSystem)
+        loader = unittest.TestLoader()
+        suite = loader.discover("tests", pattern="test_*.py")
         runner = unittest.TextTestRunner(verbosity=2)
         res = runner.run(suite)
         if not res.wasSuccessful():
