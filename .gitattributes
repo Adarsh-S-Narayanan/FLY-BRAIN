@@ -1,0 +1,16 @@
+# Git attributes for FlyBrain repository
+# Ensure text files and binary files maintain consistent line endings across platforms
+
+* text=auto
+
+# Preserve explicit line endings for data
+malecns/data-raw/*.csv text eol=lf
+manifests/*.json text eol=lf
+
+# Explicit binary files
+*.spv binary
+*.png binary
+*.wav binary
+*.npz binary
+*.db binary
+*.ico binary

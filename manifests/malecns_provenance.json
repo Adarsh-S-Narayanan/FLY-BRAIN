@@ -12,6 +12,7 @@
       "soma_sides_csv": {
         "path": "malecns/data-raw/2023-27-2 soma_sides.csv",
         "sha256": "6c1c415ab748ab1cc65c9a274885cfadc880a88eabb17915afe643c105bac84d",
+        "sha256_canonical_lf": "35835a8f67fa82e595fa64fc980670fddb23c001001b37a51571d81a0fe05c6b",
         "record_count": 125506,
         "total_tbars": 25394402,
         "description": "Biological neuron soma coordinates, hemilateral side, nucleus size, and presynaptic T-bars."
@@ -19,6 +20,7 @@
       "connections_csv": {
         "path": "malecns/data-raw/malecns_v1_0_connections.csv",
         "sha256": "039e929b4ccc776f13a8d17eb9833d85de9454b8f43a0a0de34fdabb7ca2a668",
+        "sha256_canonical_lf": "c69c894773b10229bfbcc16465335fec8fd4e951b521e00be8193f9f21f37fd9",
         "record_count": 99301,
         "description": "Authentic Janelia MaleCNS v1.0 biological synaptic connection table among major hub neurons."
       }
