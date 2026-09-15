@@ -261,14 +261,18 @@ class ResearchRuntime:
     def op_propose_hypothesis(self, text: str, based_on_experiments: list, **_):
         known = [e for e in based_on_experiments if e in self.experiment_ledger]
         unknown = [e for e in based_on_experiments if e not in self.experiment_ledger]
-        hid = hashlib.sha256(f"{text}|{time.time_ns()}".encode()).hexdigest()[:12]
+        # Deterministic research identity (V4 §34): content + sequence, never wall-clock.
+        hid = hashlib.sha256(
+            f"{text}|{len(self.hypotheses)}|{self.experiment_seed}".encode()).hexdigest()[:12]
         rec = {"hypothesis_id": hid, "text": text, "based_on_experiments": known,
                "unknown_references": unknown, "status": "HYPOTHESIS"}
         self.hypotheses.append(rec)
         return {"status": "EXECUTED", "hypothesis": rec}
 
     def op_propose_task(self, description: str, success_criterion: str, **_):
-        tid = hashlib.sha256(f"{description}|{time.time_ns()}".encode()).hexdigest()[:12]
+        tid = hashlib.sha256(
+            f"{description}|{success_criterion}|{len(self.tasks)}|{self.experiment_seed}"
+            .encode()).hexdigest()[:12]
         rec = {"task_id": tid, "description": description,
                "success_criterion": success_criterion, "status": "PROPOSED"}
         self.tasks.append(rec)
@@ -277,7 +281,9 @@ class ResearchRuntime:
     def op_propose_curriculum(self, stages: list, **_):
         if not all(isinstance(s, str) for s in stages):
             return {"status": "REJECTED", "reason": "curriculum stages must be strings"}
-        cid = hashlib.sha256(f"{'|'.join(stages)}|{time.time_ns()}".encode()).hexdigest()[:12]
+        cid = hashlib.sha256(
+            f"{'|'.join(stages)}|{len(self.curricula)}|{self.experiment_seed}"
+            .encode()).hexdigest()[:12]
         rec = {"curriculum_id": cid, "stages": stages, "status": "PROPOSED"}
         self.curricula.append(rec)
         return {"status": "EXECUTED", "curriculum": rec}

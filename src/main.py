@@ -121,6 +121,12 @@ def main():
     # flybrain test
     subparsers.add_parser("test", help="Run full test suite")
 
+    # flybrain doctor
+    subparsers.add_parser("doctor", help="Verify real environment: dataset, shaders, GPU, LLM, runtime")
+
+    # flybrain version
+    subparsers.add_parser("version", help="Print FlyBrain version")
+
     # flybrain benchmark
     subparsers.add_parser("benchmark", help="Run curriculum performance benchmarks")
 
@@ -209,6 +215,12 @@ def main():
         res = runner.run(suite)
         if not res.wasSuccessful():
             sys.exit(1)
+    elif target == "doctor":
+        from src.diagnostics.doctor import main as doctor_main
+        sys.exit(doctor_main())
+    elif target == "version":
+        from src.version import VERSION
+        print(f"FlyBrain {VERSION}")
     else:
         parser.print_help()
 

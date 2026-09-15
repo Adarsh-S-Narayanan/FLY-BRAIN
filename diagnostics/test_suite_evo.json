@@ -6,7 +6,8 @@
   "history": [
     {
       "generation": 1,
-      "parent_id": "brain_gen1_c2_01f974",
+      "parent_id": "brain_gen0_de57c622",
+      "child_id": "brain_gen1_c2_01f974",
       "baseline_score": 0.5201,
       "best_score": 0.5219,
       "improved": true,

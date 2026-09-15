@@ -16,6 +16,7 @@ class DeepTimeConfig:
     offspring_per_generation: int = 2
     max_coarse_steps: int = 1000
     divergence_threshold: float = 0.12    # speciation genome distance
+    mode: str = "ACCELERATED"             # EXACT | ACCELERATED (mission §36)
     milestone_hooks: List[Callable[[Dict[str, Any]], Optional[str]]] = field(
         default_factory=list)
 
@@ -24,6 +25,8 @@ class DeepTimeConfig:
             raise ValueError("coarse_ticks_per_step must be >= 1")
         if not (0 < self.divergence_threshold < 1):
             raise ValueError("divergence_threshold must be in (0, 1)")
+        if self.mode not in ("EXACT", "ACCELERATED"):
+            raise ValueError("mode must be EXACT or ACCELERATED")
 
 
 @dataclass
@@ -39,15 +42,24 @@ class DeepTimeEvent:
 
 
 class DeepTimeRunner:
-    """Accelerated multi-generation evolution over a real Population."""
+    """Accelerated or exact multi-generation evolution over a real Population.
+
+    EXACT mode: tick-by-tick, full state, full event stream, exact replay.
+    ACCELERATED mode: macro epochs with a documented approximation model.
+    An accelerated run NEVER reports itself as exact (mission §36).
+    """
 
     def __init__(self, population, config: Optional[DeepTimeConfig] = None):
         self.pop = population
         self.config = config or DeepTimeConfig()
         self.config.validate()
         self.ledger: Dict[str, Any] = {
-            "resolution": "coarse",
-            "approximation_model": APPROXIMATION_MODEL,
+            "mode": self.config.mode,
+            "resolution": "full" if self.config.mode == "EXACT" else "coarse",
+            "approximation_model": (None if self.config.mode == "EXACT"
+                                    else APPROXIMATION_MODEL),
+            "validation_method": ("exact_replay" if self.config.mode == "EXACT"
+                                  else "checkpoint_escalation_replay"),
             "coarse_steps": 0, "sim_ticks": 0, "generations_seen": [],
             "births": 0, "deaths": 0, "teaching_sessions": 0,
             "species_snapshots": [], "milestones": [], "started_ts": time.time(),
@@ -63,12 +75,14 @@ class DeepTimeRunner:
                      milestone_fn: Optional[Callable[[Any], List[Dict[str, Any]]]] = None
                      ) -> Dict[str, Any]:
         for _ in range(min(n_coarse_steps, self.config.max_coarse_steps)):
-            before_tick = self.pop.tick
-            self.pop.step(self.config.coarse_ticks_per_step)
-            newborns = self.pop.reproduce(self.config.offspring_per_generation)
+            if self.config.mode == "EXACT":
+                self.pop.step(1)  # tick-by-tick, no aggregation
+                self.ledger["sim_ticks"] += 1
+            else:
+                self.pop.step(self.config.coarse_ticks_per_step)
+                self.ledger["sim_ticks"] = self.pop.tick
+            self.pop.reproduce(self.config.offspring_per_generation)
             self.ledger["coarse_steps"] += 1
-            self.ledger["sim_ticks"] = self.pop.tick - 0
-            self.ledger["births"] += len(newborns)
             self.ledger["deaths"] = sum(
                 1 for o in self.pop.organisms if not o.alive)
             self.ledger["teaching_sessions"] = len(self.pop.teaching_sessions)
@@ -98,15 +112,16 @@ class DeepTimeRunner:
                 for m in milestone_fn(self.pop):
                     self.ledger["milestones"].append(
                         {**m, "coarse_step": self.ledger["coarse_steps"],
-                         "sim_tick": self.pop.tick, "resolution": "coarse"})
+                         "sim_tick": self.pop.tick, "resolution": self.ledger["resolution"]})
             for hook in self.config.milestone_hooks:
                 name = hook(self.pop)
                 if name:
                     self.ledger["milestones"].append(
                         {"milestone": name, "coarse_step": self.ledger["coarse_steps"],
-                         "sim_tick": self.pop.tick, "resolution": "coarse"})
+                         "sim_tick": self.pop.tick, "resolution": self.ledger["resolution"]})
             if self._prev_organism_ids:
                 new_ids = {o.id for o in self.pop.organisms} - self._prev_organism_ids
+                self.ledger["births"] += len(new_ids)
                 for nid in new_ids:
                     self.events.append(DeepTimeEvent(
                         self.ledger["coarse_steps"], self.pop.tick,
@@ -132,8 +147,10 @@ class DeepTimeRunner:
 
     def ledger_summary(self) -> Dict[str, Any]:
         return {
-            "resolution": "coarse",
-            "approximation_model": APPROXIMATION_MODEL,
+            "mode": self.config.mode,
+            "resolution": "full" if self.config.mode == "EXACT" else "coarse",
+            "approximation_model": self.ledger["approximation_model"],
+            "validation_method": self.ledger["validation_method"],
             "coarse_steps": self.ledger["coarse_steps"],
             "sim_ticks": self.ledger["sim_ticks"],
             "generations_seen": self.ledger["generations_seen"],

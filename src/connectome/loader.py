@@ -18,8 +18,10 @@ from src.connectome.types import (
     PopulationRegistry
 )
 
-DEFAULT_SOMA_PATH = os.path.join("malecns", "data-raw", "2023-27-2 soma_sides.csv")
-DEFAULT_CONNECTIONS_PATH = os.path.join("malecns", "data-raw", "malecns_v1_0_connections.csv")
+from src.paths import resource
+
+DEFAULT_SOMA_PATH = resource("malecns/data-raw/2023-27-2 soma_sides.csv")
+DEFAULT_CONNECTIONS_PATH = resource("malecns/data-raw/malecns_v1_0_connections.csv")
 CACHE_DIR = os.path.join("diagnostics", "connectome_cache")
 
 # Bump whenever graph construction semantics change; stale caches are rebuilt.

@@ -108,8 +108,17 @@ class Population:
                 out.append(o)
         return out
 
-    def reproduce(self, n_offspring: int = 2, mode: str = "sexual") -> List[Organism]:
+    def reproduce(self, n_offspring: int = 2, mode: str = "sexual",
+                  selection: str = "random") -> List[Organism]:
+        """Reproduction. selection: 'random' (legacy default) or 'pareto'
+        (multi-objective non-dominated selection on age/learning/efficiency)."""
         parents = self.eligible_parents()
+        if selection == "pareto":
+            pool = self.select_parents_pareto(len(parents) or 0)
+            if pool:
+                parents = pool
+        elif selection != "random":
+            raise ValueError(f"unknown selection {selection!r}")
         newborns = []
         if len(parents) < (2 if mode == "sexual" else 1):
             return newborns

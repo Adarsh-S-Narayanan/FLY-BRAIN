@@ -1,0 +1,7 @@
+{
+  "captured_ts": 1789431437.4480054,
+  "diagnostics/acceptance_matrix.json": "df9835607532481666f97c84f527e372bedd98816848c80dadc03ec42fe78543",
+  "diagnostics/cpu_gpu_validation_report.json": "f55c4fa3d6d149334bf494f45150411a0df1b29da308bc791406a929c44eb731",
+  "diagnostics/milestones/milestone_evidence.json": "526a4214020cca77128a876607c840cbe4474a579500babcefffff217100eaa4",
+  "diagnostics/alife_experiments/alife_p6_t60_s7.json": "b897451592322bf6d83019ebcdb85e05a11b7352c31f9d72fb96b802a7054fc0"
+}

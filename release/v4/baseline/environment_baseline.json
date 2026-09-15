@@ -1,0 +1,12 @@
+{
+  "captured_ts": 1789431433.8982558,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "system": "Windows",
+  "machine": "AMD64",
+  "python": "3.12.13 (main, Jun  2 2026, 22:47:20) [MSC v.1944 64 bit (AMD64)]",
+  "processor": "AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD",
+  "vulkan_device": "AMD Radeon(TM) Graphics",
+  "gguf_models": [
+    "MiniCPM5-2B-Q8_0.gguf"
+  ]
+}

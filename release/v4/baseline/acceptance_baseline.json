@@ -1,10 +1,10 @@
 {
-  "timestamp": 1789433377.8961692,
-  "overall_status": "PASSED",
-  "total_categories": 57,
-  "passed": 56,
+  "captured_ts": 1789431433.8922572,
+  "gates": 44,
+  "passed": 44,
   "failed": 0,
-  "skipped": 1,
+  "skipped": 0,
+  "overall": "PASSED",
   "categories": {
     "repository_cleanliness": {
       "status": "PASS",
@@ -181,58 +181,6 @@
     "benchmark_fairness": {
       "status": "PASS",
       "reason": "Per-arm budgets documented; LLM arms SKIP with reason when unmet."
-    },
-    "version_metadata": {
-      "status": "PASS",
-      "reason": "FlyBrain version metadata = 4.0.0."
-    },
-    "immutable_bio_baseline": {
-      "status": "PASS",
-      "reason": "Biological baseline fingerprint unchanged after lifetime development."
-    },
-    "synapse_identity_provenance": {
-      "status": "PASS",
-      "reason": "Stable synapse IDs; seed records cite source dataset; new synapses are EMERGENT, never BIOLOGICAL."
-    },
-    "brain_identity_layers": {
-      "status": "PASS",
-      "reason": "12-layer identity: same state -> same identity; weight change -> different identity."
-    },
-    "heredity_separation": {
-      "status": "PASS",
-      "reason": "Parent learned; child starts from deterministic development, not inherited learned weights."
-    },
-    "evolution_parent_identity": {
-      "status": "PASS",
-      "reason": "Accepted child never becomes its own parent in history."
-    },
-    "ablation_enforcement": {
-      "status": "PASS",
-      "reason": "no_growth grew=False; no_plasticity weights unchanged (enforced, verified by measurement)."
-    },
-    "deterministic_research_ids": {
-      "status": "PASS",
-      "reason": "Research IDs derive from content+sequence; no wall-clock identity."
-    },
-    "research_ledger_chain": {
-      "status": "PASS",
-      "reason": "Hash-chained ledger with code/dataset/shader provenance."
-    },
-    "deeptime_exact_mode": {
-      "status": "PASS",
-      "reason": "EXACT mode is tick-by-tick with no approximation claim; ACCELERATED labels its approximation model."
-    },
-    "doctor_functional": {
-      "status": "PASS",
-      "reason": "Doctor reports READY with 12 OK checks (real values)."
-    },
-    "ui_v4_endpoints": {
-      "status": "PASS",
-      "reason": "/api/version + /api/doctor serve real system state."
-    },
-    "portable_package": {
-      "status": "SKIP_ENVIRONMENT",
-      "reason": "No built portable bundle on this host; set FLYBRAIN_PORTABLE_DIR to a built dist for artifact self-test."
     }
   }
 }

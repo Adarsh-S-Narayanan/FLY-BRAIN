@@ -18,6 +18,7 @@ from src.brain.simulation_engine import SimulationEngine
 from src.experiment.manager import ExperimentManager, get_file_sha256, get_git_commit
 from src.common.determinism import SeedBundle
 from src.population.population import Population
+from src.version import VERSION as __version__
 
 app = FastAPI(title="FlyBrain Lab — Biological Connectome Research Platform")
 
@@ -77,11 +78,24 @@ def get_health():
     return {
         "status": "HEALTHY",
         "timestamp": time.time(),
+        "version": __version__,
         "graph_mode": engine.circuit.mode.value,
         "provenance_status": engine.circuit.provenance_status.value,
         "backend": "vulkan_gpu" if (engine.brain.gpu_engine and engine.brain.use_gpu) else "cpu_reference",
         "device_name": engine.brain.gpu_engine.device_name if engine.brain.gpu_engine else "CPU Reference Mode"
     }
+
+
+@app.get("/api/version")
+def get_version():
+    return {"version": __version__, "release": f"FlyBrain V{__version__}"}
+
+
+@app.get("/api/doctor")
+def get_doctor():
+    """Real environment verification for the SYSTEM view (never fabricated)."""
+    from src.diagnostics.doctor import run_doctor
+    return run_doctor()
 
 @app.get("/api/state")
 def get_state():

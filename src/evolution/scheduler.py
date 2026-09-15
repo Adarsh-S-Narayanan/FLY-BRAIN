@@ -66,6 +66,9 @@ class EvolutionScheduler:
         self.generation += 1
         mutator = StructuralMutator(seed=seed + self.generation)
         baseline_score = self.evaluate_candidate(self.current_graph, seed=seed)
+        # V4 (mission §22): capture parent identity BEFORE candidate selection so
+        # an accepted child can never become its own parent in history.
+        generation_parent_id = self.current_brain_id
         
         print(f"\n--- Generation {self.generation} (Baseline Score: {baseline_score:.4f}) ---")
         candidates = []
@@ -130,7 +133,8 @@ class EvolutionScheduler:
 
         gen_summary = {
             "generation": self.generation,
-            "parent_id": self.current_brain_id,
+            "parent_id": generation_parent_id,
+            "child_id": self.current_brain_id,
             "baseline_score": baseline_score,
             "best_score": best_score,
             "improved": best_score > baseline_score,

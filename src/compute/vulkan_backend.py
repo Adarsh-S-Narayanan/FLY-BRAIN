@@ -5,6 +5,8 @@ import numpy as np
 from typing import Tuple, List, Dict, Optional, Any
 import vulkan as vk
 
+from src.paths import resource
+
 class VulkanComputeEngine:
     """
     Persistent Vulkan 1.2+ Compute Engine for biological neural connectome simulation.
@@ -220,7 +222,7 @@ class VulkanComputeEngine:
         return buf, mem, reqs.size
 
     def _init_brain_pipeline(self):
-        spv_path = os.path.join("shaders", "brain_step.spv")
+        spv_path = resource("shaders/brain_step.spv")
         if not os.path.exists(spv_path):
             raise FileNotFoundError(f"SPIR-V compute shader missing: {spv_path}")
         with open(spv_path, "rb") as f:
@@ -277,7 +279,7 @@ class VulkanComputeEngine:
         vk.vkDestroyShaderModule(self.device, shader_module, None)
 
     def _init_plasticity_pipeline(self):
-        spv_path = os.path.join("shaders", "plasticity.spv")
+        spv_path = resource("shaders/plasticity.spv")
         if not os.path.exists(spv_path):
             raise FileNotFoundError(f"SPIR-V compute shader missing: {spv_path}")
         with open(spv_path, "rb") as f:

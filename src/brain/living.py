@@ -28,8 +28,10 @@ from src.common.determinism import derive_subseed
 from src.common.events import EventLog
 from src.connectome.types import ConnectomeGraph, GraphMode
 from src.development.engine import DevelopmentEngine, DevelopmentState
+from src.provenance.v4 import (BiologicalBaseline, ProvenanceClassV4,
+                               build_biological_baseline)
 
-SCHEMA_VERSION = "living_brain_v1"
+SCHEMA_VERSION = "living_brain_v2"
 
 
 class ProvenanceClass(str, Enum):
@@ -79,6 +81,10 @@ class SynapseRecord:
     weight_at_birth: float
     death_tick: Optional[int] = None
     death_cause: Optional[str] = None
+    creation_generation: int = 0
+    parent_synapse_ids: List[str] = field(default_factory=list)
+    source_dataset: str = ""
+    source_record_id: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return dict(self.__dict__)
@@ -91,18 +97,36 @@ class LivingBrain:
     def __init__(self, graph: ConnectomeGraph, dev: Optional[DevelopmentState] = None,
                  engine: Optional[DevelopmentEngine] = None,
                  experiment_seed: int = 42,
-                 structural_events: Optional[EventLog] = None):
+                 structural_events: Optional[EventLog] = None,
+                 bio_baseline: Optional[BiologicalBaseline] = None):
         self.graph = graph
         self.dev = dev if dev is not None else DevelopmentState.initialize(graph.num_neurons)
         self.engine = engine if engine is not None else DevelopmentEngine({}, experiment_seed)
         self.experiment_seed = int(experiment_seed)
         self.seed_class = SEED_CLASS_BY_MODE[graph.mode]
         self.structural_events = structural_events if structural_events is not None else EventLog()
+        # V4: immutable biological baseline frozen at seed time (never rewritten)
+        self.bio_baseline = bio_baseline if bio_baseline is not None \
+            else build_biological_baseline(graph)
         self._neurons: Dict[int, NeuronRecord] = {}
         self._synapses: Dict[str, SynapseRecord] = {}       # synapse_id -> record
         self._edge_index: Dict[Tuple[int, int], str] = {}   # (pre_id, post_id) -> synapse_id
         self._op_counter = 0
         self._reconcile_seed(tick=0)
+
+    @property
+    def state_class(self) -> str:
+        """Graph state model (V4 §11): baseline vs living/evolved/synthetic."""
+        counts = self.counts_by_class()
+        if counts.get("EMERGENT"):
+            return "LIVING_EMERGENT"
+        if counts.get("EVOLVED"):
+            return "EVOLVED"
+        from src.provenance.v4 import STATE_BY_SEED
+        return STATE_BY_SEED[self.seed_class.value]
+
+    def biological_baseline_intact(self) -> bool:
+        return self.bio_baseline.verify_untouched()
 
     # ------------------------------------------------------------------ seed
     def _reconcile_seed(self, tick: int) -> None:
@@ -131,10 +155,17 @@ class LivingBrain:
         pre_id, post_id = int(self.graph.neuron_ids[pre_i]), int(self.graph.neuron_ids[post_i])
         self._op_counter += 1
         sid = _stable_id("syn", pre_id, post_id, tick, self._op_counter)
+        dataset, record = "", ""
+        if op == "seed" and self.bio_baseline is not None:
+            dataset = self.bio_baseline.dataset_name
+            record = f"{dataset}:{pre_id}->{post_id}"
         self._synapses[sid] = SynapseRecord(
             synapse_id=sid, pre_id=pre_id, post_id=post_id,
             provenance_class=pclass.value, birth_tick=tick, birth_op=op,
-            weight_at_birth=float(weight))
+            weight_at_birth=float(weight),
+            creation_generation=0,
+            parent_synapse_ids=[],
+            source_dataset=dataset, source_record_id=record)
         self._edge_index[(pre_id, post_id)] = sid
         return sid
 
@@ -253,6 +284,50 @@ class LivingBrain:
         self.validate()
         return summary
 
+    def truncate_to(self, n: int) -> None:
+        """Shrink the living brain to its first n neurons (ablation enforcement).
+        Graph arrays, development state and BOTH registries stay consistent."""
+        n = int(n)
+        if n >= self.graph.num_neurons:
+            return
+        self.graph.neuron_ids = self.graph.neuron_ids[:n]
+        self.graph.coordinates = self.graph.coordinates[:n]
+        self.graph.tbars = self.graph.tbars[:n]
+        self.graph.sides = list(self.graph.sides)[:n]
+        self.graph.row_offsets = self.graph.row_offsets[:n + 1].copy()
+        end = int(self.graph.row_offsets[-1])
+        self.graph.col_indices = self.graph.col_indices[:end].copy()
+        self.graph.weights = self.graph.weights[:end].copy()
+        self.graph.graph_hash = self.graph.compute_graph_hash()
+        # registries: drop records beyond n, drop dead edges
+        keep_ids = {int(x) for x in self.graph.neuron_ids}
+        for nid in list(self._neurons):
+            if nid not in keep_ids:
+                del self._neurons[nid]
+        for i, nid in enumerate(self.graph.neuron_ids):
+            if int(nid) in self._neurons:
+                self._neurons[int(nid)].index = i
+        current_keys = set(self._edge_set().keys())  # (pre_i, post_i) index pairs
+        current_id_keys = {(int(self.graph.neuron_ids[p]), int(self.graph.neuron_ids[q]))
+                           for (p, q) in current_keys}
+        for key in list(self._edge_index.keys()):
+            if key not in current_id_keys:
+                sid = self._edge_index.pop(key)
+                rec = self._synapses.get(sid)
+                if rec is not None and rec.death_tick is None:
+                    rec.death_tick = -1
+                    rec.death_cause = "ablation_truncate"
+        # dev state
+        self.dev.cell_types = self.dev.cell_types[:n]
+        self.dev.birth_ticks = self.dev.birth_ticks[:n]
+        self.dev.lineage_ids = self.dev.lineage_ids[:n]
+        self.dev.developmental_states = self.dev.developmental_states[:n]
+        self.dev.alive = self.dev.alive[:n]
+        self.dev.activity_history = (self.dev.activity_history[:n]
+                                     if len(self.dev.activity_history) > n
+                                     else self.dev.activity_history)
+        self.validate()
+
     # ------------------------------------------------------------- metrics
     @property
     def seed_size(self) -> int:
@@ -338,6 +413,7 @@ class LivingBrain:
         return {
             "schema_version": self.SCHEMA_VERSION,
             "experiment_seed": self.experiment_seed,
+            "bio_baseline": self.bio_baseline.snapshot(),
             "neurons": [r.to_dict() for r in self._neurons.values()],
             "synapses": [r.to_dict() for r in self._synapses.values()],
             "edge_index": {f"{p}|{q}": s for (p, q), s in self._edge_index.items()},
@@ -364,6 +440,8 @@ class LivingBrain:
         lb._neurons.clear()
         lb._synapses.clear()
         lb._edge_index.clear()
+        if payload.get("bio_baseline"):
+            lb.bio_baseline = BiologicalBaseline.restore(payload["bio_baseline"])
         for d in payload.get("neurons", []):
             rec = NeuronRecord(**d)
             lb._neurons[rec.neuron_id] = rec
