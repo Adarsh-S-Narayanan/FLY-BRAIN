@@ -1,10 +1,10 @@
 {
-  "timestamp": 1789433377.8961692,
+  "timestamp": 1789536939.832869,
   "overall_status": "PASSED",
   "total_categories": 57,
-  "passed": 56,
+  "passed": 55,
   "failed": 0,
-  "skipped": 1,
+  "skipped": 2,
   "categories": {
     "repository_cleanliness": {
       "status": "PASS",
@@ -40,7 +40,7 @@
     },
     "vulkan_discovery_and_selection": {
       "status": "PASS",
-      "reason": "Vulkan 1.3 physical device discovered and selected: 'AMD Radeon(TM) Graphics'"
+      "reason": "Vulkan 1.3 physical device discovered and selected: 'NVIDIA GeForce RTX 3050 Laptop GPU'"
     },
     "persistent_resource_lifecycle": {
       "status": "PASS",
@@ -64,7 +64,7 @@
     },
     "local_model_degradation_honesty": {
       "status": "PASS",
-      "reason": "System honestly declared cognitive status: OPERATIONAL"
+      "reason": "System honestly declared cognitive status: MODEL_UNAVAILABLE"
     },
     "continuous_learning_weight_change": {
       "status": "PASS",
@@ -127,8 +127,8 @@
       "reason": "Checkpoint/resume final population hash equals uninterrupted run."
     },
     "llm_model_discovery_and_inference": {
-      "status": "PASS",
-      "reason": "Discovered 1 GGUF; inference=SUCCESS; model=MiniCPM5-2B-Q8_0.gguf."
+      "status": "SKIP_ENVIRONMENT",
+      "reason": "No local GGUF model discovered on this host; unavailable-model honesty is verified by llm_failure_mode_and_tool_safety."
     },
     "llm_failure_mode_and_tool_safety": {
       "status": "PASS",
@@ -224,7 +224,7 @@
     },
     "doctor_functional": {
       "status": "PASS",
-      "reason": "Doctor reports READY with 12 OK checks (real values)."
+      "reason": "Doctor reports READY_DEGRADED with 10 OK checks (real values)."
     },
     "ui_v4_endpoints": {
       "status": "PASS",

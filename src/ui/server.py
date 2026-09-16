@@ -512,3 +512,77 @@ def post_llm_tool(req: LLMToolRequest):
     except Exception:
         pass
     return result
+
+
+# --- 3D World & RL Trainer Endpoints ---
+
+WORLD_3D: Optional[Any] = None
+TRAINER_3D: Optional[Any] = None
+
+
+def get_3d_trainer():
+    global WORLD_3D, TRAINER_3D
+    if TRAINER_3D is None:
+        from src.world.world3d import World3D
+        from src.trainer.fly_3d_trainer import Fly3DTrainer
+        WORLD_3D = World3D()
+        TRAINER_3D = Fly3DTrainer(world=WORLD_3D)
+    return TRAINER_3D, WORLD_3D
+
+
+@app.get("/3d")
+def get_3d_page():
+    path = os.path.join(STATIC_DIR, "3d_world.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    return HTMLResponse("<h1>3D World Page initializing...</h1>")
+
+
+@app.get("/api/3d/state")
+def get_3d_state():
+    trainer, world = get_3d_trainer()
+    if not trainer.is_training:
+        # Step action from AI model for deterministic preview
+        from src.trainer.fly_3d_trainer import extract_state_vector
+        sensory = world.get_sensory_input()
+        state_vec = extract_state_vector(sensory, world)
+        action, _, _ = trainer.model.get_action(state_vec, deterministic=True)
+        world.step(action)
+    return world.snapshot()
+
+
+@app.get("/api/3d/step")
+def step_3d_manual(thrust: float = 0.5, pitch: float = 0.0, yaw: float = 0.0, roll: float = 0.0):
+    trainer, world = get_3d_trainer()
+    action = np.array([thrust, pitch, yaw, roll], dtype=np.float32)
+    world.step(action)
+    return world.snapshot()
+
+
+@app.post("/api/3d/train/start")
+async def start_3d_train():
+    trainer, world = get_3d_trainer()
+    trainer.start_training()
+    return {"status": "TRAINING_STARTED", "is_training": True}
+
+
+@app.post("/api/3d/train/pause")
+async def pause_3d_train():
+    trainer, world = get_3d_trainer()
+    trainer.pause_training()
+    return {"status": "TRAINING_PAUSED", "is_training": False}
+
+
+@app.post("/api/3d/train/reset")
+async def reset_3d_world():
+    trainer, world = get_3d_trainer()
+    trainer.pause_training()
+    world.reset()
+    return {"status": "WORLD_RESET", "snapshot": world.snapshot()}
+
+
+@app.get("/api/3d/train/stats")
+def get_3d_stats():
+    trainer, world = get_3d_trainer()
+    return trainer.get_stats()
+

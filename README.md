@@ -1,6 +1,8 @@
 # FlyBrain: Vulkan-First Biological Connectome Research Framework
 ### Grounded in the Authentic Janelia *Drosophila* Male Central Nervous System (`male-cns:v1.0`)
 
+**Note:** This is a fork of the original [FlyBrain](https://github.com/timfromhcs/FlyBrain) project by [timfromhcs](https://github.com/timfromhcs). We extend our deepest gratitude and salutation to the original author for their incredible foundational work on this biological connectome research framework.
+
 <p align="center">
   <img src="visual_evidence/screens/screen_01_main_application_live_brain.png" alt="FlyBrain Lab Scientific Workstation" width="900">
 </p>

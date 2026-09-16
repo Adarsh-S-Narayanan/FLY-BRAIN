@@ -1,8 +1,8 @@
 {
   "vulkan_device": {
-    "name": "AMD Radeon(TM) Graphics",
-    "type": 1,
-    "driver_version": 8388961
+    "name": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "type": 2,
+    "driver_version": 2497200128
   },
   "tolerances": {
     "abs_tolerance": 0.0001,

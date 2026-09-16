@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlyBrain 3D — Drosophila Foraging & RL Trainer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; }
+    
+    #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+    
+    /* Overlay Panels */
+    .hud-panel {
+      position: absolute;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    
+    #header-panel {
+      top: 16px; left: 16px; display: flex; align-items: center; gap: 14px;
+    }
+    .brand-title { font-size: 1.25rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+    .badge { background: #0284c7; color: #fff; padding: 3px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    
+    #controls-panel {
+      bottom: 20px; left: 16px; width: 340px; display: flex; flex-direction: column; gap: 12px;
+    }
+    
+    #stats-panel {
+      top: 16px; right: 16px; width: 320px; display: flex; flex-direction: column; gap: 10px;
+    }
+
+    #sensory-panel {
+      bottom: 20px; right: 16px; width: 280px;
+    }
+    
+    .btn-group { display: flex; gap: 8px; }
+    button {
+      flex: 1; padding: 10px 14px; border: none; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer;
+      transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-success:hover { background: #15803d; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-secondary { background: rgba(255,255,255,0.1); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.15); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+    
+    .stat-row { display: flex; justify-content: space-between; font-size: 0.875rem; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .stat-label { color: #94a3b8; }
+    .stat-val { font-weight: 600; font-family: monospace; color: #38bdf8; }
+
+    .meter-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+    .meter-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #38bdf8, #818cf8); transition: width 0.15s ease; }
+    
+    .cam-btn-group { display: flex; gap: 6px; margin-top: 6px; }
+    .cam-btn { padding: 6px 10px; font-size: 0.75rem; border-radius: 6px; flex: 1; }
+    .cam-btn.active { background: #0284c7; color: white; border-color: #0284c7; }
+
+    /* Key indicator overlay */
+    #keys-legend { font-size: 0.75rem; color: #94a3b8; line-height: 1.4; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; }
+  </style>
+  <!-- Three.js from CDN with fallback -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <!-- Header Panel -->
+  <div id="header-panel" class="hud-panel">
+    <div class="brand-title">
+      <span>🪰 FlyBrain 3D</span>
+      <span class="badge">Vulkan-RL Organism</span>
+    </div>
+  </div>
+
+  <!-- Stats Dashboard Panel -->
+  <div id="stats-panel" class="hud-panel">
+    <div style="font-weight: 700; color: #f1f5f9; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+      🧠 RL Training Metrics
+    </div>
+    <div class="stat-row"><span class="stat-label">Episode:</span><span id="st-ep" class="stat-val">0</span></div>
+    <div class="stat-row"><span class="stat-label">Total Steps:</span><span id="st-steps" class="stat-val">0</span></div>
+    <div class="stat-row"><span class="stat-label">Mean Reward (20 ep):</span><span id="st-reward" class="stat-val">0.0</span></div>
+    <div class="stat-row"><span class="stat-label">Fruits Harvested (20 ep):</span><span id="st-fruits" class="stat-val">0.0</span></div>
+    <div class="stat-row"><span class="stat-label">Best Ep Reward:</span><span id="st-best" class="stat-val">0.0</span></div>
+    
+    <div style="margin-top: 4px;">
+      <div class="stat-label" style="font-size:0.75rem;">Odor Gradient Signal</div>
+      <div class="meter-bar"><div id="odor-meter" class="meter-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Controls Panel -->
+  <div id="controls-panel" class="hud-panel">
+    <div style="font-weight: 700; color: #f1f5f9; margin-bottom: 4px;">🎮 Simulation Controls</div>
+    
+    <div class="btn-group">
+      <button id="btn-train" class="btn-success" onclick="toggleTraining()">▶ Start RL Training</button>
+      <button class="btn-secondary" onclick="resetWorld()">🔄 Reset World</button>
+    </div>
+
+    <div>
+      <div class="stat-label" style="margin-bottom: 4px; font-size: 0.8rem;">Camera View Mode:</div>
+      <div class="cam-btn-group">
+        <button id="cam-orbit" class="btn-secondary cam-btn active" onclick="setCamMode('orbit')">🌐 Orbit Free</button>
+        <button id="cam-follow" class="btn-secondary cam-btn" onclick="setCamMode('follow')">🪰 3rd Person</button>
+        <button id="cam-pov" class="btn-secondary cam-btn" onclick="setCamMode('pov')">👁 Fly POV</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="stat-label" style="margin-bottom: 4px; font-size: 0.8rem;">Flight Mode:</div>
+      <div class="btn-group">
+        <button id="btn-mode-ai" class="btn-primary" onclick="setFlightMode('ai')">🤖 AI Policy</button>
+        <button id="btn-mode-manual" class="btn-secondary" onclick="setFlightMode('manual')">🕹 Manual Keybd</button>
+      </div>
+    </div>
+
+    <div id="keys-legend">
+      <strong>Manual Keys:</strong> WASD = Pitch/Yaw | Space = Thrust | Shift = Down
+    </div>
+  </div>
+
+  <!-- Sensory HUD Panel -->
+  <div id="sensory-panel" class="hud-panel">
+    <div style="font-weight: 700; color: #f1f5f9; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 6px;">
+      📡 Fly Telemetry & Sensors
+    </div>
+    <div class="stat-row"><span class="stat-label">Position (X, Y, Z):</span><span id="tele-pos" class="stat-val">0.0, 0.0, 0.0</span></div>
+    <div class="stat-row"><span class="stat-label">Speed:</span><span id="tele-speed" class="stat-val">0.0 m/s</span></div>
+    <div class="stat-row"><span class="stat-label">Altitude:</span><span id="tele-alt" class="stat-val">0.0 m</span></div>
+    <div class="stat-row"><span class="stat-label">Nearest Fruit Dist:</span><span id="tele-fdist" class="stat-val">0.0 m</span></div>
+    <div class="stat-row"><span class="stat-label">Fruits Eaten:</span><span id="tele-featen" class="stat-val">0</span></div>
+  </div>
+
+  <script>
+    // --- THREE.JS SCENE SETUP ---
+    let scene, camera, renderer, controls;
+    let flyGroup, wingsLeft, wingsRight, trailLine, trailGeometry;
+    let treeGroup, fruitMeshMap = new Map(), odorParticles;
+    let cameraMode = 'orbit'; // 'orbit', 'follow', 'pov'
+    let flightMode = 'ai';    // 'ai', 'manual'
+    let isTraining = false;
+    let keys = {};
+    let trailPoints = [];
+
+    // Local simulation state
+    let worldState = null;
+
+    function init3D() {
+      // Set Z-axis as UP for the entire Three.js engine to match our Python world!
+      THREE.Object3D.DefaultUp.set(0, 0, 1);
+
+      const container = document.getElementById('canvas-container');
+      
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0f172a);
+      scene.fog = new THREE.FogExp2(0x0f172a, 0.015);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+      camera.position.set(0, -22, 12);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // Controls
+      if (typeof THREE.OrbitControls !== 'undefined') {
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 4, 3);
+        controls.update();
+      }
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.2);
+      dirLight.position.set(15, -20, 30);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      scene.add(dirLight);
+
+      // Ground Terrain
+      const groundGeo = new THREE.PlaneGeometry(80, 80, 32, 32);
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: 0x1e293b,
+        roughness: 0.8,
+        metalness: 0.1,
+      });
+      const ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      // Grid Helper
+      const grid = new THREE.GridHelper(80, 40, 0x38bdf8, 0x334155);
+      grid.rotation.x = Math.PI / 2;
+      grid.position.z = 0.01;
+      scene.add(grid);
+
+      // Groups
+      treeGroup = new THREE.Group();
+      scene.add(treeGroup);
+
+      // Create 3D Fly Model
+      createFlyModel();
+
+      // Odor Plume Particle System
+      createOdorParticleSystem();
+
+      // Resize Listener
+      window.addEventListener('resize', onWindowResize);
+      window.addEventListener('keydown', e => keys[e.code] = true);
+      window.addEventListener('keyup', e => keys[e.code] = false);
+
+      // Start loop
+      animate();
+      fetchState();
+      setInterval(fetchState, 100);
+      setInterval(fetchStats, 500);
+    }
+
+    function createFlyModel() {
+      flyGroup = new THREE.Group();
+
+      // Abdomen
+      const abdomenGeo = new THREE.SphereGeometry(0.25, 16, 16);
+      abdomenGeo.scale(0.8, 1.4, 0.7);
+      const abdomenMat = new THREE.MeshStandardMaterial({ color: 0x1e1e24, roughness: 0.3 });
+      const abdomen = new THREE.Mesh(abdomenGeo, abdomenMat);
+      abdomen.position.set(0, -0.3, 0);
+      abdomen.castShadow = true;
+      flyGroup.add(abdomen);
+
+      // Thorax
+      const thoraxGeo = new THREE.SphereGeometry(0.22, 16, 16);
+      const thoraxMat = new THREE.MeshStandardMaterial({ color: 0x33333b, roughness: 0.5 });
+      const thorax = new THREE.Mesh(thoraxGeo, thoraxMat);
+      thorax.position.set(0, 0.15, 0.05);
+      thorax.castShadow = true;
+      flyGroup.add(thorax);
+
+      // Head
+      const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
+      const headMat = new THREE.MeshStandardMaterial({ color: 0x09090b });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.set(0, 0.45, 0.05);
+      flyGroup.add(head);
+
+      // Compound Eyes
+      const eyeGeo = new THREE.SphereGeometry(0.1, 10, 10);
+      const eyeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.1, metalness: 0.3 });
+      
+      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeL.position.set(-0.1, 0.5, 0.1);
+      flyGroup.add(eyeL);
+
+      const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeR.position.set(0.1, 0.5, 0.1);
+      flyGroup.add(eyeR);
+
+      // Antennae
+      const antGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.15);
+      const antMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+      const antL = new THREE.Mesh(antGeo, antMat);
+      antL.position.set(-0.05, 0.6, 0.1);
+      antL.rotation.z = Math.PI / 4;
+      flyGroup.add(antL);
+
+      const antR = new THREE.Mesh(antGeo, antMat);
+      antR.position.set(0.05, 0.6, 0.1);
+      antR.rotation.z = -Math.PI / 4;
+      flyGroup.add(antR);
+
+      // Legs (6 legs)
+      const legGeo = new THREE.CylinderGeometry(0.015, 0.01, 0.4);
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+      const legPos = [
+        [-0.15, 0.2, -0.1], [0.15, 0.2, -0.1],   // Front
+        [-0.2, 0.0, -0.1],  [0.2, 0.0, -0.1],    // Mid
+        [-0.15, -0.2, -0.1], [0.15, -0.2, -0.1]  // Back
+      ];
+      legPos.forEach((pos, idx) => {
+        const leg = new THREE.Mesh(legGeo, legMat);
+        leg.position.set(pos[0] * 1.5, pos[1], pos[2]);
+        leg.rotation.z = (idx % 2 === 0) ? Math.PI / 4 : -Math.PI / 4;
+        leg.rotation.x = Math.PI / 6;
+        flyGroup.add(leg);
+      });
+
+      // Translucent Wings
+      const wingGeo = new THREE.PlaneGeometry(0.3, 0.8);
+      wingGeo.translate(0.15, 0.4, 0);
+      const wingMat = new THREE.MeshStandardMaterial({
+        color: 0xbae6fd,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide,
+        roughness: 0.1
+      });
+
+      wingsLeft = new THREE.Mesh(wingGeo, wingMat);
+      wingsLeft.position.set(-0.1, 0.1, 0.2);
+      flyGroup.add(wingsLeft);
+
+      wingsRight = new THREE.Mesh(wingGeo, wingMat);
+      wingsRight.scale.set(-1, 1, 1);
+      wingsRight.position.set(0.1, 0.1, 0.2);
+      flyGroup.add(wingsRight);
+
+      scene.add(flyGroup);
+
+      // Flight Trail
+      const maxTrail = 80;
+      trailGeometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(maxTrail * 3);
+      trailGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const trailMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.7 });
+      trailLine = new THREE.Line(trailGeometry, trailMat);
+      scene.add(trailLine);
+    }
+
+    function createOdorParticleSystem() {
+      const pCount = 200;
+      const pGeo = new THREE.BufferGeometry();
+      const pPos = new Float32Array(pCount * 3);
+
+      for (let i = 0; i < pCount * 3; i++) {
+        pPos[i] = (Math.random() - 0.5) * 40;
+      }
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+
+      const pMat = new THREE.PointsMaterial({
+        color: 0x4ade80,
+        size: 0.35,
+        transparent: true,
+        opacity: 0.4
+      });
+      odorParticles = new THREE.Points(pGeo, pMat);
+      scene.add(odorParticles);
+    }
+
+    function renderTreesAndFruits(trees, fruits) {
+      // Rebuild tree mesh objects if needed
+      if (treeGroup.children.length === 0) {
+        trees.forEach(t => {
+          const tContainer = new THREE.Group();
+          tContainer.position.set(t.position[0], t.position[1], 0);
+
+          // Trunk Cylinder
+          const trunkGeo = new THREE.CylinderGeometry(t.trunk_radius * 0.8, t.trunk_radius * 1.4, t.trunk_height, 9);
+          trunkGeo.translate(0, 0, t.trunk_height / 2);
+          trunkGeo.rotateX(Math.PI / 2);
+          const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 1.0 });
+          const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+          trunk.castShadow = true;
+          tContainer.add(trunk);
+
+          // Foliage Canopy (Multi-sphere for fluffier look)
+          const foliageMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8 });
+          const clusterCenters = [
+            [0, 0, 0], [1.2, 0, -0.5], [-1.2, 0, -0.5], [0, 1.2, -0.5], [0, -1.2, -0.5], [0, 0, 1.0]
+          ];
+          
+          clusterCenters.forEach(c => {
+            const foliageGeo = new THREE.SphereGeometry(t.canopy_radius * 0.6, 12, 12);
+            const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+            foliage.position.set(c[0], c[1], t.canopy_center[2] + c[2]);
+            foliage.castShadow = true;
+            tContainer.add(foliage);
+          });
+
+          treeGroup.add(tContainer);
+        });
+      }
+
+      // Update / Spawn Fruit Meshes
+      fruits.forEach(f => {
+        let fMesh = fruitMeshMap.get(f.id);
+        if (!fMesh) {
+          const fGeo = new THREE.SphereGeometry(f.radius, 12, 12);
+          const color = f.type === 'apple' ? 0xef4444 : 0xf97316;
+          const fMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 });
+          fMesh = new THREE.Mesh(fGeo, fMat);
+          fMesh.castShadow = true;
+          scene.add(fMesh);
+          fruitMeshMap.set(f.id, fMesh);
+        }
+        fMesh.position.set(f.position[0], f.position[1], f.position[2]);
+        fMesh.visible = f.ripe;
+      });
+    }
+
+    function updateFlyVisuals(fly) {
+      if (!fly) return;
+      flyGroup.position.set(fly.position[0], fly.position[1], fly.position[2]);
+      
+      // Heading & Pitch rotation
+      flyGroup.rotation.set(0, 0, 0);
+      flyGroup.rotation.z = fly.heading - Math.PI / 2;
+      flyGroup.rotation.x = fly.pitch;
+      flyGroup.rotation.y = fly.roll;
+
+      // Wing flap animation
+      const time = Date.now() * 0.05;
+      wingsLeft.rotation.z = Math.sin(time) * 0.4;
+      wingsRight.rotation.z = -Math.sin(time) * 0.4;
+
+      // Update Flight Trail
+      trailPoints.push(new THREE.Vector3(fly.position[0], fly.position[1], fly.position[2]));
+      if (trailPoints.length > 80) trailPoints.shift();
+
+      const posAttr = trailGeometry.attributes.position;
+      for (let i = 0; i < trailPoints.length; i++) {
+        posAttr.setXYZ(i, trailPoints[i].x, trailPoints[i].y, trailPoints[i].z);
+      }
+      posAttr.needsUpdate = true;
+
+      // Camera view positioning
+      if (cameraMode === 'follow') {
+        const offset = new THREE.Vector3(0, -6, 3);
+        offset.applyAxisAngle(new THREE.Vector3(0, 0, 1), fly.heading);
+        camera.position.copy(flyGroup.position).add(offset);
+        camera.lookAt(flyGroup.position);
+      } else if (cameraMode === 'pov') {
+        const fwd = new THREE.Vector3(0, 1, 0.1).applyAxisAngle(new THREE.Vector3(0, 0, 1), fly.heading);
+        camera.position.copy(flyGroup.position).add(new THREE.Vector3(0, 0, 0.2));
+        camera.lookAt(flyGroup.position.clone().add(fwd.multiplyScalar(5)));
+      }
+    }
+
+    async function fetchState() {
+      try {
+        let url = '/api/3d/state';
+        if (flightMode === 'manual') {
+          // Calculate action from keys
+          let thrust = keys['Space'] ? 1.0 : 0.2;
+          let pitch = keys['KeyW'] ? 0.8 : (keys['KeyS'] ? -0.8 : 0.0);
+          let yaw = keys['KeyA'] ? 0.8 : (keys['KeyD'] ? -0.8 : 0.0);
+          let roll = 0.0;
+          url = `/api/3d/step?thrust=${thrust}&pitch=${pitch}&yaw=${yaw}&roll=${roll}`;
+        }
+        const res = await fetch(url);
+        const data = await res.json();
+        worldState = data;
+        
+        if (data.trees && data.fruits) renderTreesAndFruits(data.trees, data.fruits);
+        if (data.fly) {
+          updateFlyVisuals(data.fly);
+          updateHUD(data);
+        }
+      } catch (err) {
+        console.warn("Fetch state error:", err);
+      }
+    }
+
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/3d/train/stats');
+        const stats = await res.json();
+        document.getElementById('st-ep').innerText = stats.episode_count || 0;
+        document.getElementById('st-steps').innerText = stats.total_steps || 0;
+        document.getElementById('st-reward').innerText = stats.mean_reward_last_20 || 0;
+        document.getElementById('st-fruits').innerText = stats.mean_fruits_last_20 || 0;
+        document.getElementById('st-best').innerText = stats.best_reward || 0;
+
+        isTraining = stats.is_training;
+        const btnTrain = document.getElementById('btn-train');
+        if (isTraining) {
+          btnTrain.innerText = '⏸ Pause Training';
+          btnTrain.className = 'btn-danger';
+        } else {
+          btnTrain.innerText = '▶ Start RL Training';
+          btnTrain.className = 'btn-success';
+        }
+      } catch (err) {}
+    }
+
+    function updateHUD(data) {
+      const fly = data.fly;
+      const sensory = data.sensory;
+      document.getElementById('tele-pos').innerText = `${fly.position[0]}, ${fly.position[1]}, ${fly.position[2]}`;
+      document.getElementById('tele-speed').innerText = `${sensory.fly_speed} m/s`;
+      document.getElementById('tele-alt').innerText = `${sensory.fly_altitude} m`;
+      document.getElementById('tele-fdist').innerText = `${sensory.nearest_fruit_dist} m`;
+      document.getElementById('tele-featen').innerText = fly.fruits_eaten;
+
+      const odorPct = Math.min(100, sensory.center_odor * 100);
+      document.getElementById('odor-meter').style.width = `${odorPct}%`;
+    }
+
+    async function toggleTraining() {
+      const action = isTraining ? 'pause' : 'start';
+      await fetch(`/api/3d/train/${action}`, { method: 'POST' });
+      fetchStats();
+    }
+
+    async function resetWorld() {
+      await fetch('/api/3d/train/reset', { method: 'POST' });
+      trailPoints = [];
+      fetchState();
+    }
+
+    function setCamMode(mode) {
+      cameraMode = mode;
+      document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`cam-${mode}`).classList.add('active');
+      if (controls) controls.enabled = (mode === 'orbit');
+    }
+
+    function setFlightMode(mode) {
+      flightMode = mode;
+      if (mode === 'ai') {
+        document.getElementById('btn-mode-ai').className = 'btn-primary';
+        document.getElementById('btn-mode-manual').className = 'btn-secondary';
+      } else {
+        document.getElementById('btn-mode-ai').className = 'btn-secondary';
+        document.getElementById('btn-mode-manual').className = 'btn-primary';
+      }
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (controls && cameraMode === 'orbit') controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.onload = init3D;
+  </script>
+</body>
+</html>
